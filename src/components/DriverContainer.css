@@ -1,0 +1,19 @@
+.delivery-list {
+    position: absolute;
+    top: 20%;
+    left: 0;
+    width: 40%;
+    height: fit-content;
+    padding: 20px;
+    z-index: 100;
+}
+
+.delivery-list ion-list {
+    border-radius: 12px;
+    --background: transparent;
+    background: transparent;
+}
+
+.delivery-list ion-list ion-item {
+    --background: #ffffffc9;
+}

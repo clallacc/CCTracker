@@ -1,5 +1,6 @@
 import { GoogleMap } from "@capacitor/google-maps";
-import { useEffect, useRef } from "react";
+import { Geolocation } from "@capacitor/geolocation";
+import { useEffect, useRef, useState } from "react";
 import "./AdminContainer.css";
 import { Capacitor } from "@capacitor/core";
 
@@ -9,20 +10,22 @@ interface ContainerProps {
 
 const AdminContainer: React.FC<ContainerProps> = ({ name }) => {
   const mapRef = useRef<HTMLDivElement | null>(null); // Explicitly type the ref
+  const [map, setMap] = useState<GoogleMap | null>(null);
   let newMap: GoogleMap;
-  let userMarker: any; // Reference for the user's live location marker
   let destinationMarker: any; // Reference for the destination marker
 
   const loadMap = async () => {
+    // Get current position
+    const coordinates = await Geolocation.getCurrentPosition();
     // Create the map
     newMap = await GoogleMap.create({
       id: "map",
       element: mapRef.current!, // Use non-null assertion since we check for null
-      apiKey: "AIzaSyCR4eiy5WOt_JlIjCV-Fm4gkmWTNhtHTU4", // Replace with your Google Maps API key
+      apiKey: "AIzaSyCK6rQoUE4uXlja5PcfwXVSpYVrRUnVABc", // Replace with your Google Maps API key
       config: {
         center: {
-          lat: 39.8282, // Default center (USA)
-          lng: -98.5795,
+          lat: coordinates.coords.latitude, // Default center (USA)
+          lng: coordinates.coords.longitude,
         },
         zoom: 8,
       },
@@ -38,8 +41,10 @@ const AdminContainer: React.FC<ContainerProps> = ({ name }) => {
       iconUrl: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png", // Custom icon for the destination
     });
 
+    setMap(newMap);
+
     // Start tracking the user's live location
-    trackUserLocation();
+    // trackUserLocation();
   };
 
   const trackUserLocation = async () => {
@@ -67,21 +72,14 @@ const AdminContainer: React.FC<ContainerProps> = ({ name }) => {
         });
 
         // Add or update the user's live location marker
-        if (!userMarker) {
-          userMarker = await newMap.addMarker({
-            coordinate: {
-              lat: latitude,
-              lng: longitude,
-            },
-            title: "You are here!",
-            iconUrl: "https://maps.google.com/mapfiles/ms/icons/red-dot.png", // Custom icon for the user's location
-          });
-        } else {
-          await userMarker.setPosition({
+        const userMarker = await newMap.addMarker({
+          coordinate: {
             lat: latitude,
             lng: longitude,
-          });
-        }
+          },
+          title: "You are here!",
+          iconUrl: "https://maps.google.com/mapfiles/ms/icons/red-dot.png", // Custom icon for the user's location
+        });
       },
       (error) => {
         console.error("Error getting location:", error);
@@ -105,11 +103,12 @@ const AdminContainer: React.FC<ContainerProps> = ({ name }) => {
 
   return (
     <div id="container">
-      {/* <strong>{name}</strong> */}
+      <strong>{name}</strong>
+      <p>this is admin page</p>
       <div
         id="map"
         ref={mapRef}
-        style={{ width: "100vw", height: "100vh" }}
+        style={{ width: "100vw", height: "95%" }}
       ></div>
     </div>
   );

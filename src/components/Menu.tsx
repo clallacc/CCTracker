@@ -27,6 +27,7 @@ import {
   warningSharp,
 } from "ionicons/icons";
 import "./Menu.css";
+import { Device } from "@capacitor/device";
 
 interface AppPage {
   url: string;
@@ -38,7 +39,7 @@ interface AppPage {
 const appAdminPages: AppPage[] = [
   {
     title: "Drivers",
-    url: "/Drivers",
+    url: "/Dashboard",
     iosIcon: archiveOutline,
     mdIcon: archiveSharp,
   },
@@ -74,7 +75,44 @@ const appAdminPages: AppPage[] = [
   },
 ];
 
-const labels = ["Family", "Friends", "Notes", "Work", "Travel", "Reminders"];
+const appDeliveryPages: AppPage[] = [
+  {
+    title: "Drivers",
+    url: "/Dashboard",
+    iosIcon: archiveOutline,
+    mdIcon: archiveSharp,
+  },
+  {
+    title: "Track Driver",
+    url: "/Favorites",
+    iosIcon: heartOutline,
+    mdIcon: heartSharp,
+  },
+  {
+    title: "Create Delivery",
+    url: "/Inbox",
+    iosIcon: mailOutline,
+    mdIcon: mailSharp,
+  },
+  {
+    title: "Eagle View",
+    url: "/Outbox",
+    iosIcon: paperPlaneOutline,
+    mdIcon: paperPlaneSharp,
+  },
+  {
+    title: "Trash",
+    url: "/Trash",
+    iosIcon: trashOutline,
+    mdIcon: trashSharp,
+  },
+  {
+    title: "Spam",
+    url: "/Spam",
+    iosIcon: warningOutline,
+    mdIcon: warningSharp,
+  },
+];
 
 const Menu: React.FC = () => {
   const location = useLocation();
