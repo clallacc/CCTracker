@@ -7,3 +7,39 @@ ion-content {
 body {
   background: transparent;
 }
+
+.google-login-header {
+  margin-top: 70px;
+}
+
+.intro-content {
+  background: #f7931e;
+  height: 100vh;
+  position: fixed;
+  z-index: 1000;
+  text-align: center;
+}
+
+.intro-content .image-div {
+  width: 75%;
+  height: fit-content;
+  display: flexbox;
+  align-items: center;
+  margin: 10% auto;
+}
+
+.intro-content h1 {
+  color: #FFF;
+  font-weight: bold;
+  padding: 10%;
+}
+
+.intro-content .image-div img {
+  width: 100%;
+  height: auto;
+}
+
+.intro-content ion-spinner {
+  margin: 0 auto;
+  color: #FFF;
+}

@@ -1,159 +1,129 @@
-import { GoogleMap } from "@capacitor/google-maps";
-import { Geolocation } from "@capacitor/geolocation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import "./DriverContainer.css";
-import { IonFooter, IonItem, IonList } from "@ionic/react";
-import mappin from "../assets/mappin.png";
-import { isLoggedIn } from "../services/util";
-import LoginModal from "./loginComponent";
+import { IonItem, IonLabel, IonList } from "@ionic/react";
+import { useAppContext } from "../services/appContext";
+import { getAeropostOrders } from "../services/httprequests";
+import { getLatLngFromAddress } from "../services/util";
+import { prefsStoreDeliveries } from "../services/prefs";
 
 interface ContainerProps {
   name: string;
+  position: any;
+  driverSection: number;
+  setDriverSection: (section: number) => void;
+  endRoute: string;
+  setEndRoute: (endRoute: string) => void;
 }
 
-const DriverContainer: React.FC<ContainerProps> = ({ name }) => {
-  const mapRef = useRef<HTMLDivElement | null>(null);
-  const [map, setMap] = useState<GoogleMap | null>(null);
-  const userMarkerRef = useRef<any | null>(null);
-  const destinationMarkerRef = useRef<any | null>(null);
-  const [isUserLogin, setIsUserLogin] = useState(false);
+const DriverContainer: React.FC<ContainerProps> = ({
+  name,
+  position,
+  driverSection,
+  setDriverSection,
+  setEndRoute,
+}) => {
+  const { appState, setAppState } = useAppContext();
+  const [deliveries, setDeliveries] = useState<any[]>([]);
+
+  // Haversine formula to calculate distance between two coordinates
+  const calculateDistance = (
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number
+  ): number => {
+    const toRadians = (degree: number) => (degree * Math.PI) / 180;
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = toRadians(lat2 - lat1);
+    const dLng = toRadians(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) *
+        Math.cos(toRadians(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in kilometers
+  };
 
   useEffect(() => {
-    const initializeUser = async () => {
-      try {
-        const loginStatus = await isLoggedIn();
-        setIsUserLogin(false);
-        console.log("User Login Status:", loginStatus);
-      } catch (error) {
-        console.error("User initialization error:", error);
-      }
-    };
-    initializeUser();
-  }, []);
+    const aeropostOrdersGet = async () => {
+      const driverDetails = await getAeropostOrders("2025-06-17");
 
-  // useEffect(() => {
-  //   const initializeMap = async () => {
-  //     try {
-  //       // Check if mapRef is available
-  //       if (!mapRef.current) {
-  //         console.error("Map container is not available");
-  //         return;
-  //       }
-
-  //       // Get current position
-  //       const coordinates = await Geolocation.getCurrentPosition();
-
-  //       // Create map
-  //       const newMap = await GoogleMap.create({
-  //         id: "map",
-  //         element: mapRef.current,
-  //         apiKey: "AIzaSyDva18CszbH8rztKzLnfwPq1oj_M9RqFiY",
-  //         config: {
-  //           center: {
-  //             lat: coordinates.coords.latitude,
-  //             lng: coordinates.coords.longitude,
-  //           },
-  //           zoom: 8,
-  //         },
-  //       });
-
-  //       // Set map state
-  //       setMap(newMap);
-
-  //       // Add destination marker
-  //       const destMarker = await newMap.addMarker({
-  //         coordinate: {
-  //           lat: 40.7128, // New York City
-  //           lng: -74.006,
-  //         },
-  //         title: "Destination",
-  //         iconUrl: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-  //       });
-
-  //       // Store destination marker reference
-  //       destinationMarkerRef.current = destMarker;
-
-  //       // Start tracking user location
-  //       // startLocationTracking(newMap);
-  //     } catch (error) {
-  //       console.error("Map initialization error:", error);
-  //     }
-  //   };
-
-  //   const timer = setTimeout(() => {
-  //     initializeMap();
-  //   }, 2000);
-  //   return () => clearTimeout(timer);
-  // }, []);
-
-  const startLocationTracking = async (mapInstance: GoogleMap) => {
-    try {
-      // Check if Permissions API is supported
-      if (navigator.permissions && navigator.permissions.query) {
-        const permission = await navigator.permissions.query({
-          name: "geolocation",
-        });
-        if (permission.state === "denied") {
-          alert("Location permission is required to track your position.");
-          return;
-        }
-      } else {
-        console.warn("Permissions API is not supported in this environment.");
-      }
-
-      // Watch position
-      const watchId = navigator.geolocation.watchPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-
-          // Update map camera
-          await mapInstance.setCamera({
-            coordinate: { lat: latitude, lng: longitude },
-            zoom: 12,
-          });
-
-          // Update or create user marker
-          if (!userMarkerRef.current) {
-            const newUserMarker = await mapInstance.addMarker({
-              coordinate: { lat: latitude, lng: longitude },
-              title: "You are here!",
-              iconUrl: mappin,
-            });
-            userMarkerRef.current = newUserMarker;
-          } else {
-            await userMarkerRef.current.setPosition({
-              lat: latitude,
-              lng: longitude,
-            });
+      // Fetch lat/lng for each delivery and calculate distance
+      const deliveriesWithDistance = await Promise.all(
+        driverDetails.map(async (delivery: any) => {
+          const coords = await getLatLngFromAddress(
+            `${delivery.address}, ${delivery.city} ${delivery.country_code}`
+          );
+          if (coords) {
+            const distance = calculateDistance(
+              position.lat,
+              position.lng,
+              coords.lat,
+              coords.lng
+            );
+            return {
+              ...delivery,
+              distance, // Add distance to the delivery object
+              latLng: { lat: coords.lat, lng: coords.lng }, // Add lat/lng to the delivery object
+            };
           }
-        },
-        (error) => {
-          console.error("Location tracking error:", error);
-        },
-        { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+          return { ...delivery, distance: Infinity }; // If no coords, set distance to Infinity
+        })
       );
 
-      // Optional: Return a cleanup function to stop watching position
-      return () => {
-        navigator.geolocation.clearWatch(watchId);
-      };
-    } catch (error) {
-      console.error("Location tracking setup error:", error);
-    }
+      // Sort deliveries by distance (closest first)
+      deliveriesWithDistance.sort((a, b) => a.distance - b.distance);
+
+      prefsStoreDeliveries(deliveriesWithDistance);
+      loadDeliveries(deliveriesWithDistance);
+    };
+
+    aeropostOrdersGet();
+  }, [position]);
+
+  const loadDeliveries = (deliveries: any) => {
+    setDeliveries(deliveries);
+  };
+
+  const formatToSentenceCase = (str: any) => {
+    if (!str) return ""; // Handle null or undefined
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   };
 
   return (
     <>
-      <div className="delivery-list">
-        <IonList>
-          <IonItem>Delivery 01</IonItem>
-          <IonItem>Delivery 02</IonItem>
-          <IonItem>Delivery 03</IonItem>
-          <IonItem>Delivery 04</IonItem>
-          <IonItem>Delivery 05</IonItem>
-        </IonList>
-      </div>
-      <LoginModal isModalOpen={isUserLogin} setIsModalOpen={setIsUserLogin} />
+      {driverSection === 0 && (
+        <>
+          <div className="delivery-list">
+            <IonList>
+              {deliveries.map((delivery) => (
+                <IonItem
+                  key={delivery.id}
+                  onClick={() => {
+                    setDriverSection(1),
+                      setEndRoute(
+                        `${delivery?.address}, ${delivery?.city} ${delivery?.country_code}`
+                      );
+                  }}
+                >
+                  <IonLabel>
+                    <h2>
+                      {formatToSentenceCase(`${delivery?.first_name}`)}{" "}
+                      {formatToSentenceCase(`${delivery?.last_name}`)}
+                    </h2>
+                    <p>
+                      {delivery?.address}
+                      {delivery?.city ? `, ${delivery?.city}` : ""}
+                    </p>
+                  </IonLabel>
+                </IonItem>
+              ))}
+            </IonList>
+          </div>
+        </>
+      )}
     </>
   );
 };

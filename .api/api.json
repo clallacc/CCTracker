@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "apis": [
+    {
+      "identifier": "aeropost",
+      "source": "@aeropost/v1.0#2kucb1wmb9p7ggz",
+      "integrity": "sha512-LZV5RZ++yK28L9UN9oWoF86h5wGfZYldXfktEWBrSLGA0yXbG7kyR/gVpxRXt4tjDUHB3kfzO7ceJViE9sTF2g==",
+      "installerVersion": "6.1.3"
+    }
+  ]
+}

@@ -14,7 +14,6 @@ import { useLocation } from "react-router-dom";
 import {
   archiveOutline,
   archiveSharp,
-  bookmarkOutline,
   heartOutline,
   heartSharp,
   mailOutline,
@@ -27,7 +26,9 @@ import {
   warningSharp,
 } from "ionicons/icons";
 import "./Menu.css";
-import { Device } from "@capacitor/device";
+import { checkEnvironment, handleRoute, userSettings } from "../services/util";
+import { useEffect, useState } from "react";
+import { useAppContext } from "../services/appContext";
 
 interface AppPage {
   url: string;
@@ -68,8 +69,8 @@ const appAdminPages: AppPage[] = [
     mdIcon: trashSharp,
   },
   {
-    title: "Spam",
-    url: "/Spam",
+    title: "Logout",
+    url: "logout",
     iosIcon: warningOutline,
     mdIcon: warningSharp,
   },
@@ -77,38 +78,32 @@ const appAdminPages: AppPage[] = [
 
 const appDeliveryPages: AppPage[] = [
   {
-    title: "Drivers",
-    url: "/Dashboard",
+    title: "Deliveries",
+    url: "Deliveries",
     iosIcon: archiveOutline,
     mdIcon: archiveSharp,
   },
   {
-    title: "Track Driver",
-    url: "/Favorites",
+    title: "Contact Client",
+    url: "Contacts",
     iosIcon: heartOutline,
     mdIcon: heartSharp,
   },
   {
-    title: "Create Delivery",
-    url: "/Inbox",
+    title: "Note",
+    url: "Note",
     iosIcon: mailOutline,
     mdIcon: mailSharp,
   },
   {
-    title: "Eagle View",
-    url: "/Outbox",
+    title: "Profile",
+    url: "Profile",
     iosIcon: paperPlaneOutline,
     mdIcon: paperPlaneSharp,
   },
   {
-    title: "Trash",
-    url: "/Trash",
-    iosIcon: trashOutline,
-    mdIcon: trashSharp,
-  },
-  {
-    title: "Spam",
-    url: "/Spam",
+    title: "Logout",
+    url: "logout",
     iosIcon: warningOutline,
     mdIcon: warningSharp,
   },
@@ -116,47 +111,90 @@ const appDeliveryPages: AppPage[] = [
 
 const Menu: React.FC = () => {
   const location = useLocation();
+  const { appState, setAppState } = useAppContext();
+  const [isMobile, setIsMobile] = useState(true);
+
+  useEffect(() => {
+    const checkDevice = async () => {
+      const environment = await checkEnvironment();
+
+      if (environment === "mobile") {
+        setIsMobile(true);
+        console.log("from menu", appState);
+      } else {
+        setIsMobile(false);
+      }
+      console.log("environment", environment);
+    };
+    checkDevice();
+  }, []);
 
   return (
     <IonMenu contentId="main" type="overlay">
       <IonContent>
-        <IonList id="inbox-list">
-          <IonListHeader>Computers and Controls</IonListHeader>
-          <IonNote>Live delivery and driver tracking</IonNote>
-          {appAdminPages.map((appPage, index) => {
-            return (
-              <IonMenuToggle key={index} autoHide={false}>
-                <IonItem
-                  className={
-                    location.pathname === appPage.url ? "selected" : ""
-                  }
-                  routerLink={appPage.url}
-                  routerDirection="none"
-                  lines="none"
-                  detail={false}
-                >
-                  <IonIcon
-                    aria-hidden="true"
-                    slot="start"
-                    ios={appPage.iosIcon}
-                    md={appPage.mdIcon}
-                  />
-                  <IonLabel>{appPage.title}</IonLabel>
-                </IonItem>
-              </IonMenuToggle>
-            );
-          })}
-        </IonList>
+        {!isMobile && (
+          <IonList id="inbox-list">
+            <IonListHeader>Computers and Controls</IonListHeader>
+            <IonNote>Live delivery and driver tracking</IonNote>
+            {appAdminPages.map((appPage, index) => {
+              return (
+                <IonMenuToggle key={index} autoHide={false}>
+                  <IonItem
+                    className={
+                      location.pathname === appPage.url ? "selected" : ""
+                    }
+                    onClick={() =>
+                      handleRoute(appPage.url, appState, setAppState)
+                    }
+                    // routerLink={appPage.url}
+                    // routerDirection="none"
+                    lines="none"
+                    detail={false}
+                  >
+                    <IonIcon
+                      aria-hidden="true"
+                      slot="start"
+                      ios={appPage.iosIcon}
+                      md={appPage.mdIcon}
+                    />
+                    <IonLabel>{appPage.title}</IonLabel>
+                  </IonItem>
+                </IonMenuToggle>
+              );
+            })}
+          </IonList>
+        )}
 
-        {/* <IonList id="labels-list">
-          <IonListHeader>Labels</IonListHeader>
-          {labels.map((label, index) => (
-            <IonItem lines="none" key={index}>
-              <IonIcon aria-hidden="true" slot="start" icon={bookmarkOutline} />
-              <IonLabel>{label}</IonLabel>
-            </IonItem>
-          ))}
-        </IonList> */}
+        {isMobile && (
+          <IonList id="inbox-list">
+            <IonListHeader>Computers and Controls</IonListHeader>
+            <IonNote>Live delivery and driver tracking</IonNote>
+            {appDeliveryPages.map((driverPage, index) => {
+              return (
+                <IonMenuToggle key={index} autoHide={false}>
+                  <IonItem
+                    className={
+                      location.pathname === driverPage.url ? "selected" : ""
+                    }
+                    onClick={() =>
+                      handleRoute(driverPage.url, appState, setAppState)
+                    }
+                    lines="none"
+                    detail={false}
+                  >
+                    <IonIcon
+                      aria-hidden="true"
+                      slot="start"
+                      ios={driverPage.iosIcon}
+                      md={driverPage.mdIcon}
+                    />
+                    <IonLabel>{driverPage.title}</IonLabel>
+                  </IonItem>
+                </IonMenuToggle>
+              );
+            })}
+          </IonList>
+        )}
       </IonContent>
     </IonMenu>
   );

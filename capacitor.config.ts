@@ -5,6 +5,9 @@ const config: CapacitorConfig = {
   appName: "CCTracker",
   webDir: "dist",
   plugins: {
+    CapacitorHttp: {
+      enabled: true,
+    },
     server: {
       androidScheme: "https",
     },

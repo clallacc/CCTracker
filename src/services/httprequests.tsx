@@ -21,3 +21,22 @@ export const getRoute = async (
     return [];
   }
 };
+
+export const getAeropostOrders = async (date: any) => {
+  const options = {
+    url: `https://api.shipper.aeropost.com/api/lmp/parcels/date/${date}`,
+    headers: {
+      "Content-type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer 111|xJdtb5GO7TltyuRQofTMnZJBSV2FvmRuHenT18Oma222b490`,
+    },
+  };
+
+  try {
+    const packages = await CapacitorHttp.get(options);
+    return packages.data || [];
+  } catch (error) {
+    console.error("Error fetching route:", error);
+    return [];
+  }
+};

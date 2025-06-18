@@ -1,11 +1,17 @@
 .delivery-list {
     position: absolute;
-    top: 20%;
+    top: 5%;
     left: 0;
-    width: 40%;
-    height: fit-content;
+    width: 50%;
+    height: 85vh;
     padding: 20px;
     z-index: 100;
+    overflow: scroll;
+}
+
+.delivery-list p {
+    font-size: 0.7rem;
+    color: rgb(0, 80, 179);
 }
 
 .delivery-list ion-list {
