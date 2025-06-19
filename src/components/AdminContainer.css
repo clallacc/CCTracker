@@ -1,10 +1,12 @@
-#container {
+.admin-list {
   text-align: center;
   position: absolute;
   left: 0;
-  right: 0;
   top: 0%;
-  transform: translateY(5%);
+  width: 25%;
+  height: fit-content;
+  z-index: 100;
+  transform: translateY(10%);
 }
 
 #container strong {
@@ -22,3 +24,4 @@
 #container a {
   text-decoration: none;
 }
+

@@ -6,7 +6,6 @@ import {
   IonIcon,
   IonInput,
   IonItem,
-  IonLabel,
   IonList,
   IonListHeader,
   IonModal,
@@ -21,12 +20,14 @@ import {
   mail,
   person,
 } from "ionicons/icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { auth, googleAuth } from "../services/firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   signInWithEmailAndPassword,
+  signInWithRedirect,
+  getRedirectResult,
 } from "firebase/auth";
 import {
   checkEmailExists,
@@ -34,8 +35,10 @@ import {
   getDriverDetails,
   updateDriverLocationInFirebase,
   updateUserSettings,
+  userSettings,
 } from "../services/util";
 import { useAppContext } from "../services/appContext";
+import { Device } from "@capacitor/device";
 
 interface NavProps {
   isModalOpen: boolean;
@@ -48,6 +51,20 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
   const [password, setPassword] = useState("");
   const [loginUserView, setLoginUserView] = useState<boolean>(false);
   const { appState, setAppState } = useAppContext();
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isIosDevice, setIsIosDevice] = useState(false);
+
+  const deviceType = async () => {
+    const deviceInfo = await Device.getInfo();
+    const devicePlatform = deviceInfo.platform;
+    if (devicePlatform === "ios") {
+      setIsIosDevice(true);
+    }
+  };
+
+  useEffect(() => {
+    deviceType();
+  }, []);
 
   const registerRegular = async () => {
     try {
@@ -63,17 +80,22 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
         phoneNumber: response.user.phoneNumber,
         photoURL: response.user.photoURL,
         lastSignInTime: response.user.metadata.lastSignInTime,
+        driverId: null,
       };
-      await updateUserSettings(data);
+
       setAppState({ isMobile: true, page: "driver", isLoggedIn: true });
       if (response.user.email) {
-        checkEmailExists(email).then((exists) => {
+        checkEmailExists(email).then(async (exists) => {
           if (exists) {
             console.log("Email exists in Firestore.");
           } else {
             console.log("Email does not exist in Firestore.");
           }
+          const driverDetails = await getDriverDetails(email);
+          updateDriverLocationInFirebase(driverDetails.id);
+          data.driverId = driverDetails.id;
         });
+        await updateUserSettings(data);
         setIsModalOpen(false);
       }
       console.log(response);
@@ -92,14 +114,16 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
         phoneNumber: response.user.phoneNumber,
         photoURL: response.user.photoURL,
         lastSignInTime: response.user.metadata.lastSignInTime,
+        driverId: null,
       };
-      await updateUserSettings(data);
+
       setAppState({ isMobile: true, page: "driver", isLoggedIn: true });
       if (response.user.email) {
         checkEmailExists(email).then(async (exists) => {
           if (exists) {
             const driverDetails = await getDriverDetails(email);
             updateDriverLocationInFirebase(driverDetails.id);
+            data.driverId = driverDetails.id;
             console.log("Email exists in Firestore.", driverDetails);
           } else {
             createDriverInFirebase({
@@ -109,6 +133,7 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
             console.log("Email does not exist in Firestore.");
           }
         });
+        await updateUserSettings(data);
         setIsModalOpen(false);
       }
       console.log(response);
@@ -118,6 +143,8 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
   };
 
   const googleLogin = async () => {
+    if (isAuthenticating) return; // Prevent multiple requests
+    setIsAuthenticating(true);
     try {
       const response = await signInWithPopup(auth, googleAuth);
       const data = {
@@ -127,13 +154,15 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
         phoneNumber: response.user.phoneNumber,
         photoURL: response.user.photoURL,
         lastSignInTime: response.user.metadata.lastSignInTime,
+        driverId: null,
       };
-      await updateUserSettings(data);
+
       if (response?.user?.emailVerified) {
         checkEmailExists(response.user.email!).then(async (exists) => {
           if (exists) {
             const driverDetails = await getDriverDetails(email);
             updateDriverLocationInFirebase(driverDetails.id);
+            data.driverId = driverDetails.id;
             console.log("Email exists in Firestore.", driverDetails);
           } else {
             createDriverInFirebase({
@@ -143,13 +172,85 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
             console.log("Email does not exist in Firestore.");
           }
         });
+        await updateUserSettings(data);
         setIsModalOpen(false);
       }
       console.log(response);
-    } catch (err) {
-      console.error(err);
+    } catch (error: any) {
+      if (error.code === "auth/cancelled-popup-request") {
+        console.warn("Popup request was canceled:", error);
+      } else {
+        console.error("Error during sign-in:", error);
+      }
+    } finally {
+      setIsAuthenticating(false);
     }
   };
+
+  // const googleLogin = async () => {
+  //   if (isAuthenticating) return; // Prevent multiple requests
+  //   setIsAuthenticating(true);
+
+  //   try {
+  //     // Initiate the redirect-based login
+  //     await signInWithRedirect(auth, googleAuth);
+  //   } catch (error: any) {
+  //     if (error.code === "auth/cancelled-popup-request") {
+  //       console.warn("Popup request was canceled:", error);
+  //     } else {
+  //       console.error("Error during sign-in:", error);
+  //     }
+  //   } finally {
+  //     setIsAuthenticating(false);
+  //   }
+  // };
+
+  // // Handle the redirect result after the user is redirected back to the app
+  // const handleRedirectResult = async () => {
+  //   try {
+  //     const response = await getRedirectResult(auth);
+  //     if (response) {
+  //       const data = {
+  //         isLoggedIn: true,
+  //         displayName: response.user.displayName,
+  //         email: response.user.email,
+  //         phoneNumber: response.user.phoneNumber,
+  //         photoURL: response.user.photoURL,
+  //         lastSignInTime: response.user.metadata.lastSignInTime,
+  //         driverId: null,
+  //       };
+
+  //       if (response?.user?.emailVerified) {
+  //         checkEmailExists(response.user.email!).then(async (exists) => {
+  //           if (exists) {
+  //             const driverDetails = await getDriverDetails(
+  //               response.user.email!
+  //             );
+  //             updateDriverLocationInFirebase(driverDetails.id);
+  //             data.driverId = driverDetails.id;
+  //             console.log("Email exists in Firestore.", driverDetails);
+  //           } else {
+  //             createDriverInFirebase({
+  //               email: response.user.email,
+  //               displayName: response.user.displayName,
+  //             });
+  //             console.log("Email does not exist in Firestore.");
+  //           }
+  //         });
+  //         await updateUserSettings(data);
+  //         setIsModalOpen(false);
+  //       }
+  //       console.log(response);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error handling redirect result:", error);
+  //   }
+  // };
+
+  // // Call `handleRedirectResult` when the app loads to process the redirect result
+  // useEffect(() => {
+  //   handleRedirectResult();
+  // }, []);
 
   return (
     <IonModal
@@ -223,6 +324,7 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
               className="ion-margin-top"
               shape="round"
               expand="block"
+              fill="outline"
             >
               Sign up
             </IonButton>
@@ -232,6 +334,7 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
               className="ion-margin-top"
               shape="round"
               expand="block"
+              fill="outline"
             >
               Sign in
             </IonButton>
@@ -255,19 +358,26 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
               </IonButton>
             )}
           </IonItem>
-          <IonListHeader className="google-login-header">
-            <IonText className="profile__title">Login with Google</IonText>
-          </IonListHeader>
-          <IonButton
-            className="ion-margin-top"
-            fill="outline"
-            shape="round"
-            expand="block"
-            onClick={googleLogin}
-          >
-            <IonIcon icon={logoGoogle}></IonIcon>
-            Google
-          </IonButton>
+          <>
+            {!isIosDevice && (
+              <IonListHeader className="google-login-header">
+                <IonText className="profile__title">Login with Google</IonText>
+              </IonListHeader>
+            )}
+            {!isIosDevice && (
+              <IonButton
+                className="ion-margin-top"
+                fill="outline"
+                shape="round"
+                expand="block"
+                onClick={googleLogin}
+                disabled={isAuthenticating}
+              >
+                <IonIcon icon={logoGoogle}></IonIcon>
+                {isAuthenticating ? "Signing in..." : "Sign in with Google"}
+              </IonButton>
+            )}
+          </>
         </IonList>
       </IonContent>
     </IonModal>

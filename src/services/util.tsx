@@ -21,6 +21,15 @@ import {
   where,
 } from "firebase/firestore";
 
+interface Delivery {
+  deliveryid: string;
+  email: string;
+  end: string;
+  start: string;
+  startDateTime: string;
+  status: string; // Include the status property
+}
+
 export const userSettings = async () => {
   try {
     const settings = await prefsGetUserSettings();
@@ -85,22 +94,6 @@ export const checkEnvironment = async () => {
   } else {
     return "mobile";
   }
-  // if (Capacitor.isNativePlatform()) {
-  //   // Check if running on a mobile platform
-  //   if (isPlatform("ios")) {
-  //     return "driver";
-  //   } else if (isPlatform("android")) {
-  //     return "driver";
-  //   } else {
-  //     return "driver";
-  //   }
-  // } else if (window && window.process && window?.process.env) {
-  //   // Check if running as an Electron app
-  //   return "admin";
-  // } else {
-  //   // Check if running in a browser
-  //   return "admin";
-  // }
 };
 
 export const defaultDriverMap = async (
@@ -301,6 +294,7 @@ export const getDeliveryRoute = async (
 
 // Firebase calls
 const DriverCollectionRef = collection(db, "drivers");
+const DeliveryCollectionRef = collection(db, "deliveries");
 export const getDriversFormFirebase = async () => {
   try {
     const data = await getDocs(DriverCollectionRef);
@@ -376,7 +370,7 @@ export const createDriverInFirebase = async (data: any) => {
 };
 
 // Helper function to calculate the distance between two coordinates using the Haversine formula
-const calculateDistance = (
+export const calculateDistance = (
   lat1: number,
   lng1: number,
   lat2: number,
@@ -485,6 +479,86 @@ export const getLatLngFromAddress = async (
   }
 };
 
+/// deliveries logic
+export const createDeliveryInFirebase = async (data: any) => {
+  try {
+    // Get the driver's current location
+    const deliveryDocRef = await addDoc(DeliveryCollectionRef, data);
+
+    const deliveryDataWithId = {
+      id: deliveryDocRef.id,
+      ...data, // Spread the original data to include it in the returned object
+    };
+
+    return deliveryDataWithId;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const updateDeliveryInFirebase = async (deliveryId: any) => {
+  try {
+    // Get the driver's current location
+    const deliveryDocRef = doc(DeliveryCollectionRef, deliveryId);
+    // Update the driver's location in Firestore
+    await updateDoc(deliveryDocRef, {
+      status: "delivered",
+      deloveredDateTime: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Error updating driver location:", error);
+  }
+};
+
+export const getDeliveryInFirebase = async (): Promise<Delivery[]> => {
+  try {
+    // Get the delivery documents from Firestore
+    const deliveryDocsRef = await getDocs(DeliveryCollectionRef);
+
+    // Map the documents to the Delivery type
+    const filteredData: Delivery[] = deliveryDocsRef.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        deliveryid: data.deliveryid, // Ensure this matches your Firestore structure
+        email: data.email,
+        end: data.end,
+        start: data.start,
+        startDateTime: data.startDateTime,
+        status: data.status,
+        id: doc.id, // You can keep this if you need the Firestore document ID
+      };
+    });
+
+    return filteredData;
+  } catch (error) {
+    console.error("Error fetching deliveries:", error);
+    return [];
+  }
+};
+
+// Firebase calls
+
 export const refreshView = () => {
   window.location.reload();
+};
+
+export const convertNanosecondsToFormattedDate = (nanoseconds: number) => {
+  // Convert nanoseconds to seconds
+  const seconds = nanoseconds / 1e9;
+
+  // Create a date object from the seconds
+  const date = new Date(seconds * 1000); // Convert seconds to milliseconds
+
+  // Format the date
+  const options: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  };
+
+  // Return the formatted date string
+  return date.toLocaleString("en-US", options);
 };

@@ -3,7 +3,7 @@ import "./DriverContainer.css";
 import { IonItem, IonLabel, IonList } from "@ionic/react";
 import { useAppContext } from "../services/appContext";
 import { getAeropostOrders } from "../services/httprequests";
-import { getLatLngFromAddress } from "../services/util";
+import { getDeliveryInFirebase, getLatLngFromAddress } from "../services/util";
 import { prefsStoreDeliveries } from "../services/prefs";
 
 interface ContainerProps {
@@ -13,6 +13,7 @@ interface ContainerProps {
   setDriverSection: (section: number) => void;
   endRoute: string;
   setEndRoute: (endRoute: string) => void;
+  setDeliveryId: (deliveryId: string) => void;
 }
 
 const DriverContainer: React.FC<ContainerProps> = ({
@@ -21,6 +22,7 @@ const DriverContainer: React.FC<ContainerProps> = ({
   driverSection,
   setDriverSection,
   setEndRoute,
+  setDeliveryId,
 }) => {
   const { appState, setAppState } = useAppContext();
   const [deliveries, setDeliveries] = useState<any[]>([]);
@@ -48,36 +50,51 @@ const DriverContainer: React.FC<ContainerProps> = ({
 
   useEffect(() => {
     const aeropostOrdersGet = async () => {
-      const driverDetails = await getAeropostOrders("2025-06-17");
+      try {
+        // Fetch data from both sources
+        const aeropostOrders = await getAeropostOrders("2025-06-17");
+        const firebaseDeliveries = await getDeliveryInFirebase();
 
-      // Fetch lat/lng for each delivery and calculate distance
-      const deliveriesWithDistance = await Promise.all(
-        driverDetails.map(async (delivery: any) => {
-          const coords = await getLatLngFromAddress(
-            `${delivery.address}, ${delivery.city} ${delivery.country_code}`
+        // Filter out deliveries with matching IDs and status "delivered"
+        const filteredOrders = aeropostOrders.filter((order: any) => {
+          const matchingDelivery = firebaseDeliveries.find(
+            (delivery: any) => delivery.deliveryid === order.id
           );
-          if (coords) {
-            const distance = calculateDistance(
-              position.lat,
-              position.lng,
-              coords.lat,
-              coords.lng
+          return !(matchingDelivery && matchingDelivery.status === "delivered");
+        });
+
+        // Fetch lat/lng for each remaining delivery and calculate distance
+        const deliveriesWithDistance = await Promise.all(
+          filteredOrders.map(async (delivery: any) => {
+            const coords = await getLatLngFromAddress(
+              `${delivery.address}, ${delivery.city} ${delivery.country_code}`
             );
-            return {
-              ...delivery,
-              distance, // Add distance to the delivery object
-              latLng: { lat: coords.lat, lng: coords.lng }, // Add lat/lng to the delivery object
-            };
-          }
-          return { ...delivery, distance: Infinity }; // If no coords, set distance to Infinity
-        })
-      );
+            if (coords) {
+              const distance = calculateDistance(
+                position.lat,
+                position.lng,
+                coords.lat,
+                coords.lng
+              );
+              return {
+                ...delivery,
+                distance, // Add distance to the delivery object
+                latLng: { lat: coords.lat, lng: coords.lng }, // Add lat/lng to the delivery object
+              };
+            }
+            return { ...delivery, distance: Infinity }; // If no coords, set distance to Infinity
+          })
+        );
 
-      // Sort deliveries by distance (closest first)
-      deliveriesWithDistance.sort((a, b) => a.distance - b.distance);
+        // Sort deliveries by distance (closest first)
+        deliveriesWithDistance.sort((a, b) => a.distance - b.distance);
 
-      prefsStoreDeliveries(deliveriesWithDistance);
-      loadDeliveries(deliveriesWithDistance);
+        // Store and load the deliveries
+        prefsStoreDeliveries(deliveriesWithDistance);
+        loadDeliveries(deliveriesWithDistance);
+      } catch (error) {
+        console.error("Error fetching or processing deliveries:", error);
+      }
     };
 
     aeropostOrdersGet();
@@ -105,7 +122,8 @@ const DriverContainer: React.FC<ContainerProps> = ({
                     setDriverSection(1),
                       setEndRoute(
                         `${delivery?.address}, ${delivery?.city} ${delivery?.country_code}`
-                      );
+                      ),
+                      setDeliveryId(delivery.id);
                   }}
                 >
                   <IonLabel>

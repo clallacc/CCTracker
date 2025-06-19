@@ -6,33 +6,26 @@ import {
   IonFooter,
   IonHeader,
   IonIcon,
-  IonItem,
   IonLabel,
-  IonList,
-  IonListHeader,
   IonMenuButton,
   IonPage,
-  IonTabBar,
-  IonTabButton,
-  IonTabs,
   IonTitle,
   IonToolbar,
+  useIonAlert,
 } from "@ionic/react";
 import { useParams } from "react-router";
 import AdminContainer from "../components/AdminContainer";
 import "./Dashboard.css";
-import { Device } from "@capacitor/device";
 import DriverContainer from "../components/DriverContainer";
 import { Geolocation } from "@capacitor/geolocation";
 import mappin from "../assets/mappin.png";
 import {
-  defaultDriverMap,
-  getDeliveryRoute,
+  calculateDistance,
+  checkEnvironment,
+  createDeliveryInFirebase,
   getDriversFormFirebase,
-  isLoggedIn,
   refreshView,
-  startLocationTracking,
-  userSettings,
+  updateDeliveryInFirebase,
 } from "../services/util";
 import {
   APIProvider,
@@ -40,6 +33,7 @@ import {
   Marker,
   useMap,
   useMapsLibrary,
+  useApiIsLoaded,
 } from "@vis.gl/react-google-maps";
 import Directions from "../components/Directions";
 import { useAppContext } from "../services/appContext";
@@ -50,56 +44,122 @@ import { refresh } from "ionicons/icons";
 const Page: React.FC = () => {
   const { name } = useParams<{ name: string }>();
   const [deviceIsMobile, setDeviceIsMobile] = useState(false);
-  // const position = { lat: 46.12775556535771, lng: -64.86594844491384 };
-  const position = { lat: 10.6419388, lng: -61.2808954 };
-  const position02 = { lat: 46.12775556535771, lng: -64.86594844491384 };
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
+  // const position = { lat: 10.6419388, lng: -61.2808954 };
   const [driverSection, setDriverSection] = useState<number>(0);
   const { appState, setAppState } = useAppContext();
   const [showIntro, setShowIntro] = useState<boolean>(true);
   const [deliveryEndRoute, setDeliveryEndRoute] = useState("");
   const [leg, setLeg] = useState<any>([]);
+  const [routeStart, setRouteStart] = useState(false);
+  const [deliveryId, setDeliveryId] = useState("");
+  const [presentAlert] = useIonAlert();
 
-  console.log("loginStatus", auth?.currentUser?.email);
-  // const initializeUser = async () => {
-  //   try {
-  //     const settings = await userSettings();
+  // console.log("loginStatus", auth?.currentUser?.email);
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        const sposition = await Geolocation.getCurrentPosition();
+        const { latitude, longitude } = sposition.coords;
+        setPosition({
+          lat: latitude,
+          lng: longitude,
+        });
+        console.log("Current position set:", { latitude, longitude });
 
-  //     if (settings?.isLoggedIn) {
-  //       appState.isLoggedIn = true;
-  //     } else {
-  //       appState.isLoggedIn = false;
-  //     }
-  //     setAppState(appState);
-  //     console.log("User Login Status:", settings.isLoggedIn);
-  //   } catch (error) {
-  //     console.error("User initialization error:", error);
-  //   }
-  // };
-  // initializeUser();
+        // Watch position geolocation
+        const options = {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0,
+        };
+        const watchId = await Geolocation.watchPosition(
+          options,
+          (position, err) => {
+            if (err) {
+              console.error("Error getting location:", err);
+              return;
+            }
+
+            if (position) {
+              const { latitude, longitude } = position.coords;
+              setPosition({
+                lat: latitude,
+                lng: longitude,
+              });
+              // Update your UI or perform actions based on the new position
+              // check when location reached
+              if (routeStart) {
+                // Calculate distance to the destination
+                const distance = calculateDistance(
+                  latitude,
+                  longitude,
+                  leg.end_address_lat,
+                  leg.end_address_lng
+                );
+
+                // Check if the distance is below the threshold (e.g., 50 meters)
+                if (distance <= 50) {
+                  presentAlert({
+                    header: "Delivery address reached",
+                    subHeader:
+                      "You have now reached your target delivery address",
+                    message:
+                      "Would you like to end route and confirm delivery was made?",
+                    buttons: [
+                      {
+                        text: "Cancel",
+                        role: "cancel",
+                        handler: () => {
+                          console.log("Alert canceled");
+                        },
+                      },
+                      {
+                        text: "End Route",
+                        role: "confirm",
+                        handler: () => {
+                          endRoute();
+                        },
+                      },
+                    ],
+                  });
+                  Geolocation.clearWatch({ id: watchId }); // Stop watching position
+                }
+              }
+            }
+          }
+        );
+        // Cleanup function to stop watching position when the component unmounts
+        return () => {
+          Geolocation.clearWatch({ id: watchId }); // Clear the watch using the correct ID
+        };
+      } catch (error) {
+        console.error("Error fetching location:", error);
+      }
+    };
+
+    initializeApp();
+  }, []);
 
   const openAppStore = async () => {
-    console.log("from dashboard");
-    const deviceInfo = await Device.getInfo();
-    if (deviceInfo.platform === "ios" || deviceInfo.platform === "android") {
+    const devicetype = await checkEnvironment();
+    if (devicetype === "mobile") {
       setDeviceIsMobile(true);
     } else {
       setDeviceIsMobile(false);
     }
-    console.log("Device Info:", deviceInfo);
-    const coordinates = await Geolocation.getCurrentPosition();
-    console.log("Current position:", coordinates);
-    position.lat = coordinates.coords.latitude;
-    position.lng = coordinates.coords.longitude;
-  };
-
-  const closeIntro = () => {
-    setShowIntro(false);
-    console.log("intro closed");
   };
 
   useEffect(() => {
     openAppStore();
   }, []);
+
+  const closeIntro = () => {
+    setShowIntro(false);
+    console.log("intro closed");
+  };
 
   useEffect(() => {
     const loadDrivers = async () => {
@@ -123,13 +183,33 @@ const Page: React.FC = () => {
 
   // Load map
 
-  const openCapacitorSite = () => {
-    window.open(
-      `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
-        leg?.start_address
-      )}&destination=${encodeURIComponent(leg.end_address)}&travelmode=driving`,
-      "_system"
-    );
+  const startRoute = async () => {
+    const data = {
+      deliveryid: deliveryId,
+      email: auth?.currentUser?.email,
+      start: leg.start_address,
+      end: leg.end_address,
+      startDateTime: new Date().toISOString(),
+      deliveredDateTime: "",
+      status: "in-route",
+    };
+
+    await createDeliveryInFirebase(data).then((data) => {
+      setRouteStart(true);
+      window.open(
+        `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
+          leg?.start_address
+        )}&destination=${encodeURIComponent(
+          leg.end_address
+        )}&travelmode=driving`,
+        "_system"
+      );
+    });
+  };
+
+  const endRoute = async () => {
+    await updateDeliveryInFirebase(deliveryId);
+    setRouteStart(false);
   };
 
   return (
@@ -154,19 +234,19 @@ const Page: React.FC = () => {
             </IonHeader>
 
             <IonContent className="ion-margin-top ion-padding-top" fullscreen>
-              <DriverContainer
-                name={name}
-                position={position}
-                driverSection={driverSection}
-                setDriverSection={setDriverSection}
-                endRoute={deliveryEndRoute}
-                setEndRoute={setDeliveryEndRoute}
-              />
-              {/* {deviceIsMobile ? (
-          <DriverContainer name={name} />
-        ) : (
-          <AdminContainer name={name} />
-        )} */}
+              {deviceIsMobile ? (
+                <DriverContainer
+                  name={name}
+                  position={position}
+                  driverSection={driverSection}
+                  setDriverSection={setDriverSection}
+                  endRoute={deliveryEndRoute}
+                  setEndRoute={setDeliveryEndRoute}
+                  setDeliveryId={setDeliveryId}
+                />
+              ) : (
+                <AdminContainer name={name} />
+              )}
               <div
                 id="map-container"
                 onPointerDown={handlePointerDown}
@@ -191,7 +271,7 @@ const Page: React.FC = () => {
                   >
                     <Marker position={position} icon={mappin} />
                     {/* <Marker position={position02} icon={mappin} /> */}
-                    {deliveryEndRoute && (
+                    {!routeStart && deliveryEndRoute && (
                       <Directions
                         driverSection={driverSection}
                         setDriverSection={setDriverSection}
@@ -205,32 +285,43 @@ const Page: React.FC = () => {
                 </APIProvider>
               </div>
             </IonContent>
-            <IonFooter>
-              <IonToolbar className="ion-padding-start">
-                <IonButtons slot="end">
-                  <IonButton
-                    size="large"
-                    shape="round"
-                    expand="block"
-                    color="primary"
-                    onClick={openCapacitorSite}
-                  >
-                    Start
-                  </IonButton>
-                </IonButtons>
-                {/* <IonTabBar>
-            <IonTabButton tab="tab1">Tab 1</IonTabButton>
-            <IonTabButton tab="tab2">Tab 2</IonTabButton>
-          </IonTabBar> */}
-                <IonLabel>
-                  <h4>
-                    {leg.end_address
-                      ? leg.end_address
-                      : "No destination route selected."}
-                  </h4>
-                </IonLabel>
-              </IonToolbar>
-            </IonFooter>
+            {deviceIsMobile && (
+              <IonFooter>
+                <IonToolbar className="ion-padding-start">
+                  <IonButtons slot="end">
+                    {!routeStart && (
+                      <IonButton
+                        size="large"
+                        shape="round"
+                        expand="block"
+                        color="primary"
+                        onClick={startRoute}
+                      >
+                        Start
+                      </IonButton>
+                    )}
+                    {routeStart && (
+                      <IonButton
+                        size="large"
+                        shape="round"
+                        expand="block"
+                        color="primary"
+                        onClick={endRoute}
+                      >
+                        End
+                      </IonButton>
+                    )}
+                  </IonButtons>
+                  <IonLabel>
+                    <h4>
+                      {leg.end_address
+                        ? leg.end_address
+                        : "No destination route selected."}
+                    </h4>
+                  </IonLabel>
+                </IonToolbar>
+              </IonFooter>
+            )}
           </>
         )}
       </IonPage>

@@ -1,6 +1,6 @@
 import { IonButton, IonIcon, IonItem, IonLabel, IonList } from "@ionic/react";
 import { useMap, useMapsLibrary } from "@vis.gl/react-google-maps";
-import { chevronBack } from "ionicons/icons";
+import { chevronBack, navigate } from "ionicons/icons";
 import { useEffect, useState } from "react";
 
 interface ContainerProps {
@@ -126,6 +126,7 @@ const Directions: React.FC<ContainerProps> = ({
                   setRouteIndex(index), setRouteLeg(leg);
                 }}
               >
+                <IonIcon icon={navigate} slot="start"></IonIcon>
                 <IonLabel>
                   <h2>{route.summary}</h2>
                   <p>to {route.legs[0].end_address.split(",")[0]}</p>

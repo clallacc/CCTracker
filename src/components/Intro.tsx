@@ -2,7 +2,12 @@ import { IonButton, IonContent, IonSpinner } from "@ionic/react";
 import loadingImg from "../assets/loadervanlogo.svg";
 import { useEffect, useState } from "react";
 import { useAppContext } from "../services/appContext";
-import { checkEnvironment, userSettings } from "../services/util";
+import {
+  checkEnvironment,
+  getDriverDetails,
+  updateDriverLocationInFirebase,
+  userSettings,
+} from "../services/util";
 import LoginModal from "./loginComponent";
 
 interface IntroProps {
@@ -29,6 +34,8 @@ const Intro: React.FC<IntroProps> = ({ setShowIntro }) => {
               appState.isLoggedIn = true;
               setShowIntro(); // Hide intro when settings are loaded
               setIsUserLogin(false);
+              const driverDetails = await getDriverDetails(settings?.email);
+              updateDriverLocationInFirebase(driverDetails.id);
             } else {
               appState.isLoggedIn = false;
               setIsUserLogin(true);
