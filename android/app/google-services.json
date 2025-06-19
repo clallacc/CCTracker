@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "122379086491",
+    "project_id": "cc-tracker-35290",
+    "storage_bucket": "cc-tracker-35290.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:122379086491:android:dee6b27acf17aa6e68743e",
+        "android_client_info": {
+          "package_name": "com.gillettegroup.cctracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "122379086491-gj5afab60ig1prrk34hlekuaj2ejmdg0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gillettegroup.cctracker",
+            "certificate_hash": "3d456b38e7f3fab2157e7cbf25beda0ab4a0c207"
+          }
+        },
+        {
+          "client_id": "122379086491-hbirkarhvqsfmrd33f7okndl2a8mrhvb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGxdkI4y94LUXGmHPiwiBP0n_o_pGgbWY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "122379086491-hbirkarhvqsfmrd33f7okndl2a8mrhvb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
