@@ -5,6 +5,7 @@ import {
   IonHeader,
   IonIcon,
   IonInput,
+  IonInputPasswordToggle,
   IonItem,
   IonList,
   IonListHeader,
@@ -106,7 +107,10 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
 
   const loginUserRegular = async () => {
     try {
+      console.log("login start: ");
       const response = await signInWithEmailAndPassword(auth, email, password);
+      console.log("response hit -> ");
+      console.log("login response: ", response);
       const data = {
         isLoggedIn: true,
         displayName: name,
@@ -136,6 +140,7 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
         await updateUserSettings(data);
         setIsModalOpen(false);
       }
+      console.log("response hit -> ");
       console.log(response);
     } catch (error) {
       console.error(error);
@@ -314,6 +319,7 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
               placeholder="Enter your password"
               onIonInput={(e) => setPassword(e.detail.value!)}
             />
+            <IonInputPasswordToggle slot="end"></IonInputPasswordToggle>
             <IonButton fill="clear" slot="end" aria-label="Show/hide">
               <IonIcon slot="icon-only" icon={eye} aria-hidden="true"></IonIcon>
             </IonButton>
@@ -330,7 +336,7 @@ const LoginModal: React.FC<NavProps> = ({ isModalOpen, setIsModalOpen }) => {
             </IonButton>
           ) : (
             <IonButton
-              onClick={loginUserRegular}
+              onClick={() => loginUserRegular()}
               className="ion-margin-top"
               shape="round"
               expand="block"

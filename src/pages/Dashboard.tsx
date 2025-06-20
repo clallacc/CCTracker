@@ -140,9 +140,11 @@ const Page: React.FC = () => {
         console.error("Error fetching location:", error);
       }
     };
-
-    initializeApp();
-  }, []);
+    console.log("appState", appState);
+    if (appState.isLoggedIn) {
+      initializeApp();
+    }
+  }, [appState]);
 
   const openAppStore = async () => {
     const devicetype = await checkEnvironment();
@@ -235,7 +237,7 @@ const Page: React.FC = () => {
             </IonHeader>
 
             <IonContent className="ion-margin-top ion-padding-top" fullscreen>
-              {deviceIsMobile ? (
+              {appState.isLoggedIn && deviceIsMobile ? (
                 <DriverContainer
                   name={name}
                   position={position}

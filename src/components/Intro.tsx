@@ -47,7 +47,7 @@ const Intro: React.FC<IntroProps> = ({ setShowIntro }) => {
         }
 
         // Update the app state
-        setAppState({ ...appState }); // Use a spread operator to trigger re-render
+        // setAppState({ ...appState }); // Use a spread operator to trigger re-render
       } catch (err) {
         console.error("Error loading settings or environment:", err);
       }

@@ -89,9 +89,52 @@ const DriverContainer: React.FC<ContainerProps> = ({
         // Sort deliveries by distance (closest first)
         deliveriesWithDistance.sort((a, b) => a.distance - b.distance);
 
-        // Store and load the deliveries
-        prefsStoreDeliveries(deliveriesWithDistance);
-        loadDeliveries(deliveriesWithDistance);
+        // Push the new delivery data (TO REMOVE)
+        const newDelivery = [
+          {
+            id: "9f127869-c36f-42da-bfd1-a654d42924id",
+            reference_number: "369-95082094",
+            tracking_code: "HZ001TT5536342891802",
+            phone: "+18684911071",
+            first_name: "Walmart",
+            last_name: "Moncton",
+            city: "Moncton",
+            address: "25 Plaza Blvd",
+            address_extra: null,
+            country_code: "CA",
+            delivery_route: "61",
+            delivery_zen: "279",
+            postal_code: null,
+            delivery_instructions: null,
+            manifest_number: "369-95082094",
+          },
+          {
+            id: "9f127869-c36f-42da-bfd1-a654d42924uis",
+            reference_number: "369-95082094",
+            tracking_code: "HZ001TT5536342891802",
+            phone: "+18684911071",
+            first_name: "Moncton",
+            last_name: "Hospital",
+            city: "Moncton",
+            address: "135 Macbeath Ave",
+            address_extra: null,
+            country_code: "CA",
+            delivery_route: "61",
+            delivery_zen: "279",
+            postal_code: null,
+            delivery_instructions: null,
+            manifest_number: "369-95082094",
+          },
+        ];
+
+        const updatedDeliveries = [...deliveriesWithDistance, ...newDelivery];
+        prefsStoreDeliveries(updatedDeliveries);
+        loadDeliveries(updatedDeliveries);
+        // Push the new delivery data (TO REMOVE)
+
+        // Store and load the deliveries (UNCOMMENT BELOW)
+        // prefsStoreDeliveries(deliveriesWithDistance);
+        // loadDeliveries(deliveriesWithDistance);
       } catch (error) {
         console.error("Error fetching or processing deliveries:", error);
       }
