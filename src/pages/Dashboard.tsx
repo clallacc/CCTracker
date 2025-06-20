@@ -7,6 +7,7 @@ import {
   IonHeader,
   IonIcon,
   IonLabel,
+  IonLoading,
   IonMenuButton,
   IonPage,
   IonTitle,
@@ -170,15 +171,15 @@ const Page: React.FC = () => {
   }, []);
 
   const handlePointerDown = (event: any) => {
-    // Handle pointer down event
+    event.stopPropagation(); // Prevent interference with the map
   };
 
   const handlePointerMove = (event: any) => {
-    // Handle pointer move event
+    event.stopPropagation();
   };
 
   const handlePointerUp = (event: any) => {
-    // Handle pointer up event
+    event.stopPropagation();
   };
 
   // Load map
@@ -256,32 +257,39 @@ const Page: React.FC = () => {
                 <APIProvider
                   apiKey={`${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`}
                 >
-                  <Map
-                    center={position}
-                    zoom={18}
-                    heading={25}
-                    tilt={60}
-                    mapId={`${import.meta.env.VITE_GOOGLE_MAPS_ID}`}
-                    fullscreenControl={false}
-                    zoomControl={true}
-                    mapTypeControl={false}
-                    scaleControl={true}
-                    streetViewControl={false}
-                    rotateControl={false}
-                  >
-                    <Marker position={position} icon={mappin} />
-                    {/* <Marker position={position02} icon={mappin} /> */}
-                    {!routeStart && deliveryEndRoute && (
-                      <Directions
-                        driverSection={driverSection}
-                        setDriverSection={setDriverSection}
-                        startRoute={position}
-                        endRoute={deliveryEndRoute}
-                        routeLeg={leg}
-                        setRouteLeg={setLeg}
+                  {position ? (
+                    <Map
+                      mapId={`${import.meta.env.VITE_GOOGLE_MAPS_ID}`}
+                      style={{ width: "100vw", height: "100vh" }}
+                      defaultCenter={position}
+                      defaultZoom={18}
+                      defaultHeading={25}
+                      gestureHandling={"greedy"}
+                      disableDefaultUI={true}
+                    >
+                      <Marker position={position} icon={mappin} />
+                      {/* <Marker position={position02} icon={mappin} /> */}
+                      {!routeStart && deliveryEndRoute && (
+                        <Directions
+                          driverSection={driverSection}
+                          setDriverSection={setDriverSection}
+                          startRoute={position}
+                          endRoute={deliveryEndRoute}
+                          routeLeg={leg}
+                          setRouteLeg={setLeg}
+                        />
+                      )}
+                    </Map>
+                  ) : (
+                    <div className="map-loading">
+                      <IonLoading
+                        isOpen={!position}
+                        message="Dismissing after 3 seconds..."
+                        duration={3000}
                       />
-                    )}
-                  </Map>
+                      Loading map...
+                    </div> // Optional loading state
+                  )}
                 </APIProvider>
               </div>
             </IonContent>

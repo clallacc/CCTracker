@@ -54,3 +54,10 @@
 .directions-header h2 {
     color: rgb(0, 80, 179);
 }
+
+.map-loading {
+  width: 100vw;
+  height: 100vh;
+  padding-top: 25%;
+  text-align: center;
+}
