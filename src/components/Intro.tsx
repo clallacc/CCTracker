@@ -9,6 +9,8 @@ import {
   userSettings,
 } from "../services/util";
 import LoginModal from "./loginComponent";
+import IosLoginModal from "./iosLoginComponent";
+import { Device } from "@capacitor/device";
 
 interface IntroProps {
   setShowIntro: () => void;
@@ -17,6 +19,21 @@ interface IntroProps {
 const Intro: React.FC<IntroProps> = ({ setShowIntro }) => {
   const { appState, setAppState } = useAppContext();
   const [isUserLogin, setIsUserLogin] = useState(false);
+  const [isIosDevice, setIsIosDevice] = useState(false);
+  const [platform, SetPlatform] = useState("");
+
+  const deviceType = async () => {
+    const deviceInfo = await Device.getInfo();
+    const devicePlatform = deviceInfo.platform;
+    if (devicePlatform === "ios") {
+      setIsIosDevice(true);
+      SetPlatform(devicePlatform);
+    }
+  };
+
+  useEffect(() => {
+    deviceType();
+  }, []);
 
   useEffect(() => {
     const checkDevice = async () => {
@@ -31,7 +48,7 @@ const Intro: React.FC<IntroProps> = ({ setShowIntro }) => {
 
           setTimeout(async () => {
             if (settings && settings?.isLoggedIn) {
-              appState.isLoggedIn = true;
+              setAppState(settings);
               setShowIntro(); // Hide intro when settings are loaded
               setIsUserLogin(false);
               const driverDetails = await getDriverDetails(settings?.email);
@@ -90,7 +107,21 @@ const Intro: React.FC<IntroProps> = ({ setShowIntro }) => {
           </IonButton>
         )}
       </IonContent>
-      <LoginModal isModalOpen={isUserLogin} setIsModalOpen={setIsUserLogin} />
+      {isIosDevice ? (
+        <IosLoginModal
+          isModalOpen={isUserLogin}
+          setIsModalOpen={setIsUserLogin}
+          platform={platform}
+          isIosDevice={isIosDevice}
+        />
+      ) : (
+        <LoginModal
+          isModalOpen={isUserLogin}
+          setIsModalOpen={setIsUserLogin}
+          platform={platform}
+          isIosDevice={isIosDevice}
+        />
+      )}
     </>
   );
 };

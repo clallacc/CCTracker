@@ -29,8 +29,6 @@ const AdminContainer: React.FC<ContainerProps> = ({ name }) => {
 
   return (
     <div className="admin-list">
-      <strong>{name}</strong>
-      <p>drivers</p>
       <IonList>
         {drivers.map((driver) => (
           <IonItem key={driver.id}>

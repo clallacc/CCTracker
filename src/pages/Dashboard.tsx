@@ -48,6 +48,7 @@ const Page: React.FC = () => {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
     null
   );
+  const homePosition = { lat: 10.6577349, lng: -61.5131554 };
   // const position = { lat: 10.6419388, lng: -61.2808954 };
   const [driverSection, setDriverSection] = useState<number>(0);
   const { appState, setAppState } = useAppContext();
@@ -59,8 +60,16 @@ const Page: React.FC = () => {
   const [presentAlert] = useIonAlert();
 
   // console.log("loginStatus", auth?.currentUser?.email);
+  const initializeAppAdmin = async () => {
+    console.log("initializeAppAdmin");
+    setPosition({
+      lat: homePosition.lat,
+      lng: homePosition.lng,
+    });
+  };
+
   useEffect(() => {
-    const initializeApp = async () => {
+    const initializeAppDriver = async () => {
       try {
         const sposition = await Geolocation.getCurrentPosition();
         const { latitude, longitude } = sposition.coords;
@@ -140,9 +149,11 @@ const Page: React.FC = () => {
         console.error("Error fetching location:", error);
       }
     };
-    console.log("appState", appState);
-    if (appState.isLoggedIn) {
-      initializeApp();
+    // console.log("appState", appState);
+    if (deviceIsMobile && appState.isLoggedIn) {
+      initializeAppDriver();
+    } else {
+      initializeAppAdmin();
     }
   }, [appState]);
 
@@ -286,7 +297,7 @@ const Page: React.FC = () => {
                     <div className="map-loading">
                       <IonLoading
                         isOpen={!position}
-                        message="Dismissing after 3 seconds..."
+                        message="Loading data please wait..."
                         duration={3000}
                       />
                       Loading map...

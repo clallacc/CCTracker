@@ -6,7 +6,7 @@ import {
 import { Geolocation } from "@capacitor/geolocation";
 import { GoogleMap } from "@capacitor/google-maps";
 import mappin from "../assets/mappin.png";
-import { getRoute } from "./httprequests";
+import { getDriversFirestore, getRoute } from "./httprequests";
 import { signOut } from "firebase/auth";
 import { auth, db } from "./firebase";
 import { Device } from "@capacitor/device";
@@ -537,6 +537,48 @@ export const getDeliveryInFirebase = async (): Promise<Delivery[]> => {
 };
 
 // Firebase calls
+
+// IOS Firebase calls
+export const checkDriverExistInFirebase = async (email: string) => {
+  try {
+    const drivers = await getDriversFirestore(
+      "AIzaSyC0EJ1qu-bnh0PfL2gpA2cMPS5Jbs_jki8"
+    );
+    if (drivers && drivers?.documents) {
+      const driverExists = drivers.documents.some((driver: any) => {
+        return driver.fields.email.stringValue === email; // Adjust based on your Firestore document structure
+      });
+      return driverExists;
+    } else {
+      console.log("No drivers found.");
+      return false; // No drivers found
+    }
+  } catch (error) {
+    console.error("Error checking driver existence:", error);
+  }
+};
+
+export const getDriverDetailsFromFirebaseIos = async (
+  email: string
+): Promise<any | null> => {
+  try {
+    const drivers = await getDriversFirestore(
+      "AIzaSyC0EJ1qu-bnh0PfL2gpA2cMPS5Jbs_jki8"
+    );
+    if (drivers && drivers?.documents) {
+      const driverDetails = drivers.documents.filter((driver: any) => {
+        return driver.fields.email.stringValue === email; // Adjust based on your Firestore document structure
+      });
+      return driverDetails;
+    } else {
+      console.log("No drivers found.");
+      return false; // No drivers found
+    }
+  } catch (error) {
+    console.error("Error checking driver existence:", error);
+  }
+};
+// IOS Firebase calls
 
 export const refreshView = () => {
   window.location.reload();
