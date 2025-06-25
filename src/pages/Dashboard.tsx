@@ -61,6 +61,7 @@ const Page: React.FC = () => {
   const [deliveryId, setDeliveryId] = useState("");
   const [adminDriverData, setAdminDriverData] = useState<any>([]);
   const [presentAlert] = useIonAlert();
+  const [currentPage, setCurrentPage] = useState(appState.page);
 
   // console.log("loginStatus", auth?.currentUser?.email);
   // const initializeAppAdmin = async () => {
@@ -70,8 +71,6 @@ const Page: React.FC = () => {
   //     lng: homePosition.lng,
   //   });
   // };
-
-  const map = useMap();
 
   // useEffect(() => {
   //   console.log("adminDriverData", adminDriverData);
@@ -178,7 +177,8 @@ const Page: React.FC = () => {
     } else {
       // initializeAppAdmin();
     }
-  }, [appState, deviceIsMobile]);
+    console.log("appContext", appState);
+  }, [deviceIsMobile]);
 
   const openAppStore = async () => {
     const devicetype = await checkEnvironment();
@@ -249,6 +249,10 @@ const Page: React.FC = () => {
     setRouteStart(false);
   };
 
+  useEffect(() => {
+    setCurrentPage(appState.page); // Update current page when appState.page changes
+  }, [appState.page, currentPage]);
+
   return (
     <>
       <IonPage>
@@ -272,15 +276,17 @@ const Page: React.FC = () => {
 
             <IonContent className="ion-margin-top ion-padding-top" fullscreen>
               {appState.isLoggedIn && deviceIsMobile ? (
-                <DriverContainer
-                  name={name}
-                  position={position}
-                  driverSection={driverSection}
-                  setDriverSection={setDriverSection}
-                  endRoute={deliveryEndRoute}
-                  setEndRoute={setDeliveryEndRoute}
-                  setDeliveryId={setDeliveryId}
-                />
+                currentPage === "deliveries" ? (
+                  <DriverContainer
+                    name={name}
+                    position={position}
+                    driverSection={driverSection}
+                    setDriverSection={setDriverSection}
+                    endRoute={deliveryEndRoute}
+                    setEndRoute={setDeliveryEndRoute}
+                    setDeliveryId={setDeliveryId}
+                  />
+                ) : null
               ) : (
                 <AdminContainer
                   name={name}
@@ -318,7 +324,6 @@ const Page: React.FC = () => {
                           endRoute={deliveryEndRoute}
                           routeLeg={leg}
                           setRouteLeg={setLeg}
-                          map={map}
                         />
                       )}
                     </Map>

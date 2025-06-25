@@ -73,7 +73,11 @@ export const handleRoute = (
       window.location.reload();
       console.log("your are logged out", appContext);
       break;
-    case "Deliveries":
+    case "deliveries":
+      setAppContext({ ...appContext, page: "deliveries" });
+      break;
+    case "profile":
+      setAppContext({ ...appContext, page: "Profile" });
       break;
     default:
       console.log("Unknown route:", route);
@@ -295,6 +299,7 @@ export const getDeliveryRoute = async (
 // Firebase calls
 const DriverCollectionRef = collection(db, "drivers");
 const DeliveryCollectionRef = collection(db, "deliveries");
+
 export const getDriversFormFirebase = async () => {
   try {
     const data = await getDocs(DriverCollectionRef);

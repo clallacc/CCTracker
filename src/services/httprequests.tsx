@@ -1,4 +1,6 @@
 import { CapacitorHttp } from "@capacitor/core";
+import { db } from "./firebase";
+import { collection, getDocs } from "firebase/firestore";
 
 export const getRoute = async (
   origin: { lat: number; lng: number },
@@ -22,22 +24,40 @@ export const getRoute = async (
   }
 };
 
-export const getAeropostOrders = async (date: any) => {
-  const options = {
-    url: `https://api.shipper.aeropost.com/api/lmp/parcels/date/${date}`,
-    headers: {
-      "Content-type": "application/json",
-      Accept: "application/json",
-      Authorization: `Bearer 111|xJdtb5GO7TltyuRQofTMnZJBSV2FvmRuHenT18Oma222b490`,
-    },
-  };
-
+const DeliveryListCollectionRef = collection(db, "deliverylist");
+const getDeliveryList = async () => {
   try {
-    const packages = await CapacitorHttp.get(options);
-    return packages.data || [];
+    const data = await getDocs(DeliveryListCollectionRef);
+    const filteredData = data.docs.map((doc) => ({
+      ...doc.data(),
+    }));
+    return filteredData;
   } catch (error) {
-    console.error("Error fetching route:", error);
+    console.error(error);
     return [];
+  }
+};
+export const getAeropostOrders = async (date: any) => {
+  try {
+    const listUrl = await getDeliveryList();
+    const options = {
+      url: `${listUrl[0].url}`,
+      headers: {
+        "Content-type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer 111|xJdtb5GO7TltyuRQofTMnZJBSV2FvmRuHenT18Oma222b490`,
+      },
+    };
+
+    try {
+      const packages = await CapacitorHttp.get(options);
+      return packages.data || [];
+    } catch (error) {
+      console.error("Error fetching route:", error);
+      return [];
+    }
+  } catch (error) {
+    console.error(error);
   }
 };
 

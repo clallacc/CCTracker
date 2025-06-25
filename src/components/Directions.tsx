@@ -10,7 +10,6 @@ interface ContainerProps {
   endRoute: string;
   routeLeg: any;
   setRouteLeg: (leg: any) => void;
-  map: ReturnType<typeof useMap>;
 }
 
 const Directions: React.FC<ContainerProps> = ({
@@ -20,9 +19,8 @@ const Directions: React.FC<ContainerProps> = ({
   endRoute,
   routeLeg,
   setRouteLeg,
-  map,
 }) => {
-  // const map = useMap();
+  const map = useMap();
   const routesLibrary = useMapsLibrary("routes");
   const [directionsService, setDirectionsService] =
     useState<google.maps.DirectionsService | null>(null);
@@ -96,8 +94,8 @@ const Directions: React.FC<ContainerProps> = ({
               onClick={() => {
                 setDriverSection(0);
                 // Reset directions and related state
-                // setRoutes([]);
-                // setRouteIndex(0);
+                setRoutes([]);
+                setRouteIndex(0);
                 if (directionsRenderer) {
                   directionsRenderer.setMap(null); // Clear the map
                 }

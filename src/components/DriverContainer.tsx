@@ -27,27 +27,6 @@ const DriverContainer: React.FC<ContainerProps> = ({
   const { appState, setAppState } = useAppContext();
   const [deliveries, setDeliveries] = useState<any[]>([]);
 
-  // Haversine formula to calculate distance between two coordinates
-  const calculateDistance = (
-    lat1: number,
-    lng1: number,
-    lat2: number,
-    lng2: number
-  ): number => {
-    const toRadians = (degree: number) => (degree * Math.PI) / 180;
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = toRadians(lat2 - lat1);
-    const dLng = toRadians(lng2 - lng1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRadians(lat1)) *
-        Math.cos(toRadians(lat2)) *
-        Math.sin(dLng / 2) *
-        Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in kilometers
-  };
-
   useEffect(() => {
     const aeropostOrdersGet = async () => {
       try {
@@ -144,8 +123,6 @@ const DriverContainer: React.FC<ContainerProps> = ({
               (a: any, b: any) =>
                 (a.distance || Infinity) - (b.distance || Infinity)
             ); // Sort by distance
-
-          console.log("lookup results", sortedDeliveries);
 
           // Store and load sorted deliveries
           prefsStoreDeliveries(sortedDeliveries);

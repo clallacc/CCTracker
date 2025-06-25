@@ -79,25 +79,25 @@ const appAdminPages: AppPage[] = [
 const appDeliveryPages: AppPage[] = [
   {
     title: "Deliveries",
-    url: "Deliveries",
+    url: "deliveries",
     iosIcon: archiveOutline,
     mdIcon: archiveSharp,
   },
   {
     title: "Contact Client",
-    url: "Contacts",
+    url: "contacts",
     iosIcon: heartOutline,
     mdIcon: heartSharp,
   },
   {
     title: "Note",
-    url: "Note",
+    url: "note",
     iosIcon: mailOutline,
     mdIcon: mailSharp,
   },
   {
     title: "Profile",
-    url: "Profile",
+    url: "profile",
     iosIcon: paperPlaneOutline,
     mdIcon: paperPlaneSharp,
   },
