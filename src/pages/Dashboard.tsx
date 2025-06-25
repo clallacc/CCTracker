@@ -35,21 +35,23 @@ import {
   useMap,
   useMapsLibrary,
   useApiIsLoaded,
+  MapControl,
+  ControlPosition,
 } from "@vis.gl/react-google-maps";
 import Directions from "../components/Directions";
 import { useAppContext } from "../services/appContext";
 import { auth } from "../services/firebase";
 import Intro from "../components/Intro";
-import { refresh } from "ionicons/icons";
+import { home, pin, refresh } from "ionicons/icons";
 
 const Page: React.FC = () => {
   const { name } = useParams<{ name: string }>();
   const [deviceIsMobile, setDeviceIsMobile] = useState(false);
-  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
-    null
-  );
+  // const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
+  //   null
+  // );
   const homePosition = { lat: 10.6577349, lng: -61.5131554 };
-  // const position = { lat: 10.6419388, lng: -61.2808954 };
+  const position = { lat: 10.6419388, lng: -61.2808954 };
   const [driverSection, setDriverSection] = useState<number>(0);
   const { appState, setAppState } = useAppContext();
   const [showIntro, setShowIntro] = useState<boolean>(true);
@@ -57,26 +59,47 @@ const Page: React.FC = () => {
   const [leg, setLeg] = useState<any>([]);
   const [routeStart, setRouteStart] = useState(false);
   const [deliveryId, setDeliveryId] = useState("");
+  const [adminDriverData, setAdminDriverData] = useState<any>([]);
   const [presentAlert] = useIonAlert();
 
   // console.log("loginStatus", auth?.currentUser?.email);
-  const initializeAppAdmin = async () => {
-    console.log("initializeAppAdmin");
-    setPosition({
-      lat: homePosition.lat,
-      lng: homePosition.lng,
-    });
-  };
+  // const initializeAppAdmin = async () => {
+  //   console.log("initializeAppAdmin");
+  //   setPosition({
+  //     lat: homePosition.lat,
+  //     lng: homePosition.lng,
+  //   });
+  // };
+
+  const map = useMap();
+
+  // useEffect(() => {
+  //   console.log("adminDriverData", adminDriverData);
+  //   if (adminDriverData) {
+  //     const newPosition = {
+  //       lat: adminDriverData.lat,
+  //       lng: adminDriverData.lng,
+  //     };
+  //     setPosition(newPosition);
+  //     // Center the map on the new position
+  //     if (!map) return;
+  //     map.setCenter(newPosition);
+  //     console.log("map", map);
+  //   } else {
+  //     setPosition(homePosition);
+  //     map?.setCenter(homePosition);
+  //   }
+  // }, [adminDriverData, map]);
 
   useEffect(() => {
     const initializeAppDriver = async () => {
       try {
         const sposition = await Geolocation.getCurrentPosition();
         const { latitude, longitude } = sposition.coords;
-        setPosition({
-          lat: latitude,
-          lng: longitude,
-        });
+        // setPosition({
+        //   lat: latitude,
+        //   lng: longitude,
+        // });
         console.log("Current position set:", { latitude, longitude });
 
         // Watch position geolocation
@@ -95,10 +118,10 @@ const Page: React.FC = () => {
 
             if (position) {
               const { latitude, longitude } = position.coords;
-              setPosition({
-                lat: latitude,
-                lng: longitude,
-              });
+              // setPosition({
+              //   lat: latitude,
+              //   lng: longitude,
+              // });
               // Update your UI or perform actions based on the new position
               // check when location reached
               if (routeStart) {
@@ -150,12 +173,12 @@ const Page: React.FC = () => {
       }
     };
     // console.log("appState", appState);
-    if (deviceIsMobile && appState.isLoggedIn) {
+    if (deviceIsMobile) {
       initializeAppDriver();
     } else {
-      initializeAppAdmin();
+      // initializeAppAdmin();
     }
-  }, [appState]);
+  }, [appState, deviceIsMobile]);
 
   const openAppStore = async () => {
     const devicetype = await checkEnvironment();
@@ -259,7 +282,11 @@ const Page: React.FC = () => {
                   setDeliveryId={setDeliveryId}
                 />
               ) : (
-                <AdminContainer name={name} />
+                <AdminContainer
+                  name={name}
+                  driverId={adminDriverData}
+                  setDriverId={setAdminDriverData}
+                />
               )}
               <div
                 id="map-container"
@@ -267,10 +294,10 @@ const Page: React.FC = () => {
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
               >
-                <APIProvider
-                  apiKey={`${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`}
-                >
-                  {position ? (
+                {position ? (
+                  <APIProvider
+                    apiKey={`${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`}
+                  >
                     <Map
                       mapId={`${import.meta.env.VITE_GOOGLE_MAPS_ID}`}
                       style={{ width: "100vw", height: "100vh" }}
@@ -281,6 +308,7 @@ const Page: React.FC = () => {
                       disableDefaultUI={true}
                     >
                       <Marker position={position} icon={mappin} />
+
                       {/* <Marker position={position02} icon={mappin} /> */}
                       {!routeStart && deliveryEndRoute && (
                         <Directions
@@ -290,20 +318,21 @@ const Page: React.FC = () => {
                           endRoute={deliveryEndRoute}
                           routeLeg={leg}
                           setRouteLeg={setLeg}
+                          map={map}
                         />
                       )}
                     </Map>
-                  ) : (
-                    <div className="map-loading">
-                      <IonLoading
-                        isOpen={!position}
-                        message="Loading data please wait..."
-                        duration={3000}
-                      />
-                      Loading map...
-                    </div> // Optional loading state
-                  )}
-                </APIProvider>
+                  </APIProvider>
+                ) : (
+                  <div className="map-loading">
+                    <IonLoading
+                      isOpen={!position}
+                      message="Loading data please wait..."
+                      duration={3000}
+                    />
+                    Loading map...
+                  </div> // Optional loading state
+                )}
               </div>
             </IonContent>
             {deviceIsMobile && (

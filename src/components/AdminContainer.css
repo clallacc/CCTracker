@@ -9,6 +9,10 @@
   transform: translateY(10%);
 }
 
+.admin-list ion-item {
+  cursor: pointer;
+}
+
 #container strong {
   font-size: 20px;
   line-height: 26px;

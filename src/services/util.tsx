@@ -454,30 +454,30 @@ export const checkEmailExists = async (email: string): Promise<boolean> => {
   }
 };
 
-export const getLatLngFromAddress = async (
-  address: string
-): Promise<{ lat: number; lng: number } | null> => {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY; // Ensure your API key is stored in an environment variable
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-    address
-  )}&key=${apiKey}`;
+// export const getLatLngFromAddress = async (
+//   address: string
+// ): Promise<{ lat: number; lng: number } | null> => {
+//   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY; // Ensure your API key is stored in an environment variable
+//   const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+//     address
+//   )}&key=${apiKey}`;
 
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
+//   try {
+//     const response = await fetch(url);
+//     const data = await response.json();
 
-    if (data.status === "OK" && data.results.length > 0) {
-      const location = data.results[0].geometry.location;
-      return { lat: location.lat, lng: location.lng };
-    } else {
-      console.error("Geocoding API error:", data.status);
-      return null;
-    }
-  } catch (error) {
-    console.error("Error fetching latitude and longitude:", error);
-    return null;
-  }
-};
+//     if (data.status === "OK" && data.results.length > 0) {
+//       const location = data.results[0].geometry.location;
+//       return { lat: location.lat, lng: location.lng };
+//     } else {
+//       console.error("Geocoding API error:", data.status);
+//       return null;
+//     }
+//   } catch (error) {
+//     console.error("Error fetching latitude and longitude:", error);
+//     return null;
+//   }
+// };
 
 /// deliveries logic
 export const createDeliveryInFirebase = async (data: any) => {

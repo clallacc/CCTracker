@@ -9,9 +9,15 @@ import { chevronForward } from "ionicons/icons";
 
 interface ContainerProps {
   name: string;
+  driverId: any;
+  setDriverId: (driverId: any) => void;
 }
 
-const AdminContainer: React.FC<ContainerProps> = ({ name }) => {
+const AdminContainer: React.FC<ContainerProps> = ({
+  name,
+  driverId,
+  setDriverId,
+}) => {
   const [drivers, setDrivers] = useState<any[]>([]);
 
   const loadDrivers = async () => {
@@ -31,17 +37,36 @@ const AdminContainer: React.FC<ContainerProps> = ({ name }) => {
     <div className="admin-list">
       <IonList>
         {drivers.map((driver) => (
-          <IonItem key={driver.id}>
-            <IonIcon slot="end" icon={chevronForward}></IonIcon>
-            <IonLabel>
-              <h3>{driver.name}</h3>
-              <p>{driver.email}</p>
-              <small>
-                {convertNanosecondsToFormattedDate(driver.lastSignIn.seconds)}
-              </small>
-            </IonLabel>
-          </IonItem>
+          <>
+            <IonItem
+              onClick={() => {
+                setDriverId({
+                  driverId: driver.id,
+                  lng: Number(driver.lng),
+                  lat: Number(driver.lat),
+                }),
+                  console.log("driver data updated");
+              }}
+              key={driver.id}
+            >
+              <IonIcon slot="end" icon={chevronForward}></IonIcon>
+              <IonLabel>
+                <h3>{driver.name}</h3>
+                <p>{driver.email}</p>
+                <small>
+                  {convertNanosecondsToFormattedDate(driver.lastSignIn.seconds)}
+                </small>
+              </IonLabel>
+            </IonItem>
+          </>
         ))}
+        <IonItem
+          onClick={() => {
+            setDriverId(null), console.log("driver data updated");
+          }}
+        >
+          Reset Map
+        </IonItem>
       </IonList>
     </div>
   );

@@ -120,11 +120,9 @@ const Menu: React.FC = () => {
 
       if (environment === "mobile") {
         setIsMobile(true);
-        console.log("from menu", appState);
       } else {
         setIsMobile(false);
       }
-      console.log("environment", environment);
     };
     checkDevice();
   }, []);

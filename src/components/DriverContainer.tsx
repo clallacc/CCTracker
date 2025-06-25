@@ -3,7 +3,7 @@ import "./DriverContainer.css";
 import { IonItem, IonLabel, IonList } from "@ionic/react";
 import { useAppContext } from "../services/appContext";
 import { getAeropostOrders } from "../services/httprequests";
-import { getDeliveryInFirebase, getLatLngFromAddress } from "../services/util";
+import { getDeliveryInFirebase } from "../services/util";
 import { prefsStoreDeliveries } from "../services/prefs";
 
 interface ContainerProps {
@@ -63,32 +63,6 @@ const DriverContainer: React.FC<ContainerProps> = ({
           return !(matchingDelivery && matchingDelivery.status === "delivered");
         });
 
-        // Fetch lat/lng for each remaining delivery and calculate distance
-        const deliveriesWithDistance = await Promise.all(
-          filteredOrders.map(async (delivery: any) => {
-            const coords = await getLatLngFromAddress(
-              `${delivery.address}, ${delivery.city} ${delivery.country_code}`
-            );
-            if (coords) {
-              const distance = calculateDistance(
-                position.lat,
-                position.lng,
-                coords.lat,
-                coords.lng
-              );
-              return {
-                ...delivery,
-                distance, // Add distance to the delivery object
-                latLng: { lat: coords.lat, lng: coords.lng }, // Add lat/lng to the delivery object
-              };
-            }
-            return { ...delivery, distance: Infinity }; // If no coords, set distance to Infinity
-          })
-        );
-
-        // Sort deliveries by distance (closest first)
-        deliveriesWithDistance.sort((a, b) => a.distance - b.distance);
-
         // Push the new delivery data (TO REMOVE)
         const newDelivery = [
           {
@@ -127,21 +101,64 @@ const DriverContainer: React.FC<ContainerProps> = ({
           },
         ];
 
-        const updatedDeliveries = [...deliveriesWithDistance, ...newDelivery];
-        prefsStoreDeliveries(updatedDeliveries);
-        loadDeliveries(updatedDeliveries);
-        // Push the new delivery data (TO REMOVE)
+        const updatedDeliveries = [...filteredOrders, ...newDelivery];
 
-        // Store and load the deliveries (UNCOMMENT BELOW)
-        // prefsStoreDeliveries(deliveriesWithDistance);
-        // loadDeliveries(deliveriesWithDistance);
+        // Calculate distance from current location
+        const directionsService = new google.maps.DirectionsService();
+
+        // Function to calculate distance for each delivery
+        const calculateDistances = async () => {
+          const promises = updatedDeliveries.map((delivery) => {
+            return new Promise((resolve, reject) => {
+              const destination = delivery.address + ", " + delivery.city;
+
+              directionsService.route(
+                {
+                  origin: position,
+                  destination: destination,
+                  travelMode: google.maps.TravelMode.DRIVING,
+                },
+                (result, status) => {
+                  if (status === google.maps.DirectionsStatus.OK) {
+                    const distance = result?.routes[0].legs[0].distance?.value; // Convert meters to kilometers
+                    resolve({ ...delivery, distance: distance });
+                  } else {
+                    console.error(
+                      `Error fetching directions for ${destination}: ${status}`
+                    );
+                    reject(status);
+                  }
+                }
+              );
+            });
+          });
+
+          // Wait for all distances to be calculated
+          const deliveriesWithDistances = await Promise.allSettled(promises);
+          // Sort deliveries by distance
+          // Filter out successful results and map to the desired format
+          const sortedDeliveries = deliveriesWithDistances
+            .filter((result) => result.status === "fulfilled") // Keep only fulfilled promises
+            .map((result) => result.value) // Extract the value directly
+            .sort(
+              (a: any, b: any) =>
+                (a.distance || Infinity) - (b.distance || Infinity)
+            ); // Sort by distance
+
+          console.log("lookup results", sortedDeliveries);
+
+          // Store and load sorted deliveries
+          prefsStoreDeliveries(sortedDeliveries);
+          loadDeliveries(sortedDeliveries);
+        };
+        calculateDistances();
       } catch (error) {
         console.error("Error fetching or processing deliveries:", error);
       }
     };
 
     aeropostOrdersGet();
-  }, [position]);
+  }, []);
 
   const loadDeliveries = (deliveries: any) => {
     setDeliveries(deliveries);
