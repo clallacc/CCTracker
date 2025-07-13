@@ -25,6 +25,58 @@ const trayMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
 const appMenuBarMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
   { role: process.platform === "darwin" ? "appMenu" : "fileMenu" },
   { role: "viewMenu" },
+  {
+    label: "Delivery",
+    submenu: [
+      {
+        label: "Deliveries",
+        click: () => {
+          const mainWindow = myCapacitorApp.getMainWindow();
+          if (mainWindow) mainWindow.reload();
+        },
+      },
+      {
+        label: "Sync Deliveries",
+        click: () => {
+          const mainWindow = myCapacitorApp.getMainWindow();
+          if (mainWindow) mainWindow.webContents.send("menu-view-drivers");
+        },
+      },
+      {
+        label: "Edit Delivery",
+        click: () => {
+          const mainWindow = myCapacitorApp.getMainWindow();
+          if (mainWindow) mainWindow.webContents.send("menu-login-new-user");
+        },
+      },
+    ],
+  },
+  {
+    label: "Driver",
+    submenu: [
+      {
+        label: "View Drivers",
+        click: () => {
+          const mainWindow = myCapacitorApp.getMainWindow();
+          if (mainWindow) mainWindow.reload();
+        },
+      },
+      {
+        label: "Add Driver",
+        click: () => {
+          const mainWindow = myCapacitorApp.getMainWindow();
+          if (mainWindow) mainWindow.webContents.send("menu-view-drivers");
+        },
+      },
+      {
+        label: "Remove Driver",
+        click: () => {
+          const mainWindow = myCapacitorApp.getMainWindow();
+          if (mainWindow) mainWindow.webContents.send("menu-login-new-user");
+        },
+      },
+    ],
+  },
 ];
 
 // Get Config options from capacitor.config

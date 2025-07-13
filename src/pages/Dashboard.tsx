@@ -43,6 +43,8 @@ import { useAppContext } from "../services/appContext";
 import { auth } from "../services/firebase";
 import Intro from "../components/Intro";
 import { home, pin, refresh } from "ionicons/icons";
+import Deliveries from "../components/Deliveries";
+// import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 
 const Page: React.FC = () => {
   const { name } = useParams<{ name: string }>();
@@ -51,7 +53,8 @@ const Page: React.FC = () => {
   //   null
   // );
   const homePosition = { lat: 10.6577349, lng: -61.5131554 };
-  const position = { lat: 10.6419388, lng: -61.2808954 };
+  // const position = { lat: 10.6419388, lng: -61.2808954 };
+  const position = { lat: 10.6401756, lng: -61.3346946 };
   const [driverSection, setDriverSection] = useState<number>(0);
   const { appState, setAppState } = useAppContext();
   const [showIntro, setShowIntro] = useState<boolean>(true);
@@ -288,57 +291,76 @@ const Page: React.FC = () => {
                   />
                 ) : null
               ) : (
-                <AdminContainer
-                  name={name}
-                  driverId={adminDriverData}
-                  setDriverId={setAdminDriverData}
-                />
+                // <AdminContainer
+                //   name={name}
+                //   driverId={adminDriverData}
+                //   setDriverId={setAdminDriverData}
+                // />
+                <Deliveries />
               )}
-              <div
-                id="map-container"
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
+              {/* <MapContainer
+                center={position}
+                zoom={13}
+                scrollWheelZoom={false}
+                style={{ width: "auto", height: "100vh" }}
               >
-                {position ? (
-                  <APIProvider
-                    apiKey={`${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`}
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <Marker position={position}>
+                  <Popup>
+                    A pretty CSS3 popup. <br /> Easily customizable.
+                  </Popup>
+                </Marker>
+              </MapContainer> */}
+              <>
+                {appState.isLoggedIn && deviceIsMobile && (
+                  <div
+                    id="map-container"
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
                   >
-                    <Map
-                      mapId={`${import.meta.env.VITE_GOOGLE_MAPS_ID}`}
-                      style={{ width: "100vw", height: "100vh" }}
-                      defaultCenter={position}
-                      defaultZoom={18}
-                      defaultHeading={25}
-                      gestureHandling={"greedy"}
-                      disableDefaultUI={true}
-                    >
-                      <Marker position={position} icon={mappin} />
-
-                      {/* <Marker position={position02} icon={mappin} /> */}
-                      {!routeStart && deliveryEndRoute && (
-                        <Directions
-                          driverSection={driverSection}
-                          setDriverSection={setDriverSection}
-                          startRoute={position}
-                          endRoute={deliveryEndRoute}
-                          routeLeg={leg}
-                          setRouteLeg={setLeg}
+                    {position ? (
+                      <APIProvider
+                        apiKey={`${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`}
+                      >
+                        <Map
+                          mapId={`${import.meta.env.VITE_GOOGLE_MAPS_ID}`}
+                          style={{ width: "100vw", height: "100vh" }}
+                          defaultCenter={position}
+                          defaultZoom={18}
+                          defaultHeading={25}
+                          gestureHandling={"greedy"}
+                          disableDefaultUI={true}
+                        >
+                          <Marker position={position} icon={mappin} />
+                          {!routeStart && deliveryEndRoute && (
+                            <Directions
+                              driverSection={driverSection}
+                              setDriverSection={setDriverSection}
+                              startRoute={position}
+                              endRoute={deliveryEndRoute}
+                              routeLeg={leg}
+                              setRouteLeg={setLeg}
+                            />
+                          )}
+                        </Map>
+                      </APIProvider>
+                    ) : (
+                      <div className="map-loading">
+                        <IonLoading
+                          isOpen={!position}
+                          message="Loading data please wait..."
+                          duration={3000}
                         />
-                      )}
-                    </Map>
-                  </APIProvider>
-                ) : (
-                  <div className="map-loading">
-                    <IonLoading
-                      isOpen={!position}
-                      message="Loading data please wait..."
-                      duration={3000}
-                    />
-                    Loading map...
-                  </div> // Optional loading state
+                        Loading map...
+                      </div> // Optional loading state
+                    )}
+                  </div>
                 )}
-              </div>
+              </>
             </IonContent>
             {deviceIsMobile && (
               <IonFooter>

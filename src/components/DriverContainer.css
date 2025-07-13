@@ -2,11 +2,11 @@
     position: absolute;
     top: 5%;
     left: 0;
-    width: 50%;
+    width: fit-content;
     height: 85vh;
     padding: 20px;
     z-index: 100;
-    overflow: scroll;
+    overflow: auto;
 }
 
 .delivery-list p {
@@ -22,4 +22,12 @@
 
 .delivery-list ion-list ion-item {
     --background: #ffffffc9;
+}
+
+.delivery-list .select-city--item {
+    margin-top: 60px;
+}
+.delivery-list .delivery-list--item {
+    height: 100%;
+    overflow: scroll;
 }

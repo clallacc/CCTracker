@@ -20,6 +20,8 @@ import {
   query,
   where,
 } from "firebase/firestore";
+import { IonIcon } from "@ionic/react";
+import { star, starHalf, starOutline } from "ionicons/icons";
 
 interface Delivery {
   deliveryid: string;
@@ -296,6 +298,34 @@ export const getDeliveryRoute = async (
   }
 };
 
+// Function to fetch latitude and longitude using OpenStreetMap's Nominatim API
+export const fetchLatLon = async (
+  address: string,
+  city: string,
+  countryCode: string
+) => {
+  const query = `${address}, ${city}, ${countryCode}`;
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+    query
+  )}&format=json&addressdetails=1`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lon: parseFloat(data[0].lon),
+      };
+    }
+    console.error("No results found for address:", query);
+    return null;
+  } catch (error) {
+    console.error("Error fetching geocoding data:", error);
+    return null;
+  }
+};
+
 // Firebase calls
 const DriverCollectionRef = collection(db, "drivers");
 const DeliveryCollectionRef = collection(db, "deliveries");
@@ -459,30 +489,69 @@ export const checkEmailExists = async (email: string): Promise<boolean> => {
   }
 };
 
-// export const getLatLngFromAddress = async (
-//   address: string
-// ): Promise<{ lat: number; lng: number } | null> => {
-//   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY; // Ensure your API key is stored in an environment variable
-//   const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-//     address
-//   )}&key=${apiKey}`;
+export const getLatLngFromAddress = async (
+  address: string
+): Promise<{
+  coordinates: { lat: number; lng: number } | null;
+  isValid: boolean;
+}> => {
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+    address
+  )}&key=${apiKey}`;
 
-//   try {
-//     const response = await fetch(url);
-//     const data = await response.json();
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
 
-//     if (data.status === "OK" && data.results.length > 0) {
-//       const location = data.results[0].geometry.location;
-//       return { lat: location.lat, lng: location.lng };
-//     } else {
-//       console.error("Geocoding API error:", data.status);
-//       return null;
-//     }
-//   } catch (error) {
-//     console.error("Error fetching latitude and longitude:", error);
-//     return null;
-//   }
-// };
+    if (data.status === "OK" && data.results.length > 0) {
+      const location = data.results[0].geometry.location;
+
+      // Optional: Check location_type for precision (e.g., "ROOFTOP" is most precise)
+      const locationType = data.results[0].geometry.location_type;
+      const validTypes = ["ROOFTOP", "RANGE_INTERPOLATED", "GEOMETRIC_CENTER"];
+      const isValid = validTypes.includes(locationType);
+
+      return {
+        coordinates: { lat: location.lat, lng: location.lng },
+        isValid,
+      };
+    } else {
+      console.error("Geocoding API error:", data.status);
+      return { coordinates: null, isValid: false };
+    }
+  } catch (error) {
+    console.error("Error fetching latitude and longitude:", error);
+    return { coordinates: null, isValid: false };
+  }
+};
+
+export const deliveryCoodinatesStatus = (delivery: any) => {
+  if (delivery?.coordinates) {
+    if (delivery?.coordinates?.isValid) {
+      return (
+        <p>
+          <IonIcon color="success" icon={star}></IonIcon>
+          <IonIcon color="success" icon={star}></IonIcon>
+          <IonIcon color="success" icon={star}></IonIcon>
+        </p>
+      );
+    } else {
+      return (
+        <p>
+          <IonIcon color="warning" icon={star}></IonIcon>
+          <IonIcon color="warning" icon={starHalf}></IonIcon>
+        </p>
+      );
+    }
+  } else {
+    return (
+      <p>
+        <IonIcon color="danger" icon={starOutline}></IonIcon>
+      </p>
+    );
+  }
+};
 
 /// deliveries logic
 export const createDeliveryInFirebase = async (data: any) => {

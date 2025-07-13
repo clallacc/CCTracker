@@ -47,6 +47,14 @@
 	<dict>
   		<key>NSAllowsArbitraryLoads</key>
   	<true/>
+	<key>NSExceptionDomains</key>
+    <dict>
+        <key>developers.google.com</key>
+        <dict>
+            <key>NSExceptionAllowsInsecureHTTPLoads</key>
+            <true/>
+        </dict>
+    </dict>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Location service is needed in this app for app functionality and to use the map feature.</string>

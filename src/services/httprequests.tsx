@@ -39,9 +39,10 @@ const getDeliveryList = async () => {
 };
 export const getAeropostOrders = async (date: any) => {
   try {
-    const listUrl = await getDeliveryList();
+    // const listUrl = await getDeliveryList();
     const options = {
-      url: `${listUrl[0].url}`,
+      // url: `${listUrl[0].url}`,
+      url: `https://api.shipper.aeropost.com/api/lmp/parcels/date/${date}`,
       headers: {
         "Content-type": "application/json",
         Accept: "application/json",

@@ -52,7 +52,7 @@ const Intro: React.FC<IntroProps> = ({ setShowIntro }) => {
               setShowIntro(); // Hide intro when settings are loaded
               setIsUserLogin(false);
               const driverDetails = await getDriverDetails(settings?.email);
-              updateDriverLocationInFirebase(driverDetails.id);
+              updateDriverLocationInFirebase(driverDetails?.id);
             } else {
               appState.isLoggedIn = false;
               setIsUserLogin(true);
