@@ -323,32 +323,32 @@ const Page: React.FC = () => {
                     onPointerUp={handlePointerUp}
                   >
                     {position ? (
-                      <APIProvider
-                        apiKey={`${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`}
+                      // <APIProvider
+                      //   apiKey={`${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`}
+                      // >
+                      <Map
+                        mapId={`${import.meta.env.VITE_GOOGLE_MAPS_ID}`}
+                        style={{ width: "100vw", height: "100vh" }}
+                        defaultCenter={position}
+                        defaultZoom={18}
+                        defaultHeading={25}
+                        gestureHandling={"greedy"}
+                        disableDefaultUI={true}
                       >
-                        <Map
-                          mapId={`${import.meta.env.VITE_GOOGLE_MAPS_ID}`}
-                          style={{ width: "100vw", height: "100vh" }}
-                          defaultCenter={position}
-                          defaultZoom={18}
-                          defaultHeading={25}
-                          gestureHandling={"greedy"}
-                          disableDefaultUI={true}
-                        >
-                          <Marker position={position} icon={mappin} />
-                          {!routeStart && deliveryEndRoute && (
-                            <Directions
-                              driverSection={driverSection}
-                              setDriverSection={setDriverSection}
-                              startRoute={position}
-                              endRoute={deliveryEndRoute}
-                              routeLeg={leg}
-                              setRouteLeg={setLeg}
-                            />
-                          )}
-                        </Map>
-                      </APIProvider>
+                        <Marker position={position} icon={mappin} />
+                        {!routeStart && deliveryEndRoute && (
+                          <Directions
+                            driverSection={driverSection}
+                            setDriverSection={setDriverSection}
+                            startRoute={position}
+                            endRoute={deliveryEndRoute}
+                            routeLeg={leg}
+                            setRouteLeg={setLeg}
+                          />
+                        )}
+                      </Map>
                     ) : (
+                      // </APIProvider>
                       <div className="map-loading">
                         <IonLoading
                           isOpen={!position}

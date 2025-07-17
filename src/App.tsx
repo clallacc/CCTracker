@@ -8,6 +8,7 @@ import { IonReactRouter } from "@ionic/react-router";
 import { Redirect, Route } from "react-router-dom";
 import Menu from "./components/Menu";
 import Dashboard from "./pages/Dashboard";
+import { APIProvider } from "@vis.gl/react-google-maps";
 
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";
@@ -44,21 +45,23 @@ setupIonicReact();
 
 const App: React.FC = () => {
   return (
-    <IonApp>
-      <IonReactRouter>
-        <IonSplitPane contentId="main">
-          <Menu />
-          <IonRouterOutlet id="main">
-            <Route path="/" exact={true}>
-              <Redirect to="/Dashboard" />
-            </Route>
-            <Route path="/:name" exact={true}>
-              <Dashboard />
-            </Route>
-          </IonRouterOutlet>
-        </IonSplitPane>
-      </IonReactRouter>
-    </IonApp>
+    <APIProvider apiKey={`${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`}>
+      <IonApp>
+        <IonReactRouter>
+          <IonSplitPane contentId="main">
+            <Menu />
+            <IonRouterOutlet id="main">
+              <Route path="/" exact={true}>
+                <Redirect to="/Dashboard" />
+              </Route>
+              <Route path="/:name" exact={true}>
+                <Dashboard />
+              </Route>
+            </IonRouterOutlet>
+          </IonSplitPane>
+        </IonReactRouter>
+      </IonApp>
+    </APIProvider>
   );
 };
 

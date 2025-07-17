@@ -494,6 +494,7 @@ export const getLatLngFromAddress = async (
 ): Promise<{
   coordinates: { lat: number; lng: number } | null;
   isValid: boolean;
+  editable: boolean;
 }> => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
@@ -511,18 +512,21 @@ export const getLatLngFromAddress = async (
       const locationType = data.results[0].geometry.location_type;
       const validTypes = ["ROOFTOP", "RANGE_INTERPOLATED", "GEOMETRIC_CENTER"];
       const isValid = validTypes.includes(locationType);
+      // editable is false by default; true only if isValid is false
+      const editable = !isValid;
 
       return {
         coordinates: { lat: location.lat, lng: location.lng },
         isValid,
+        editable,
       };
     } else {
       console.error("Geocoding API error:", data.status);
-      return { coordinates: null, isValid: false };
+      return { coordinates: null, isValid: false, editable: true };
     }
   } catch (error) {
     console.error("Error fetching latitude and longitude:", error);
-    return { coordinates: null, isValid: false };
+    return { coordinates: null, isValid: false, editable: true };
   }
 };
 
