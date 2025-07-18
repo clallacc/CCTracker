@@ -13,9 +13,15 @@ import {
   getLatLngFromAddress,
 } from "../services/util";
 import React from "react";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  useMapEvents,
+} from "react-leaflet";
 import AddressAutocompleteInput from "./AddressAutocompleteInput";
-import { navigate } from "ionicons/icons";
+import { locate, navigate } from "ionicons/icons";
 import L from "leaflet";
 import car01 from "../assets/pin01.png";
 import car02 from "../assets/pin02.png";
@@ -56,16 +62,48 @@ const getRandomCarIcon = () => {
   return carIcons[index];
 };
 
+const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+  const response = await fetch(url);
+  const data = await response.json();
+  return data.display_name || "Address not found";
+};
+
+interface ClickAndDragMarkerProps {
+  markerPosition: L.LatLng | null;
+  setMarkerPosition: (pos: L.LatLng) => void;
+  setAddress: (address: string) => void;
+}
+
+const ClickAndDragMarker: React.FC<ClickAndDragMarkerProps> = ({
+  markerPosition,
+  setMarkerPosition,
+  setAddress,
+}) => {
+  useMapEvents({
+    click: async (e) => {
+      // Only set marker if it doesn't exist yet
+      if (!markerPosition) {
+        setMarkerPosition(e.latlng);
+        const address = await reverseGeocode(e.latlng.lat, e.latlng.lng);
+        setAddress(address);
+      }
+    },
+  });
+  return null;
+};
+
 const Deliveries: React.FC = () => {
   const [aeropostDeliveries, setAeropostDeliveries] = useState<any[]>([]);
-  const [editingAddresses, setEditingAddresses] = useState<{
-    [id: string]: string;
-  }>({});
   const position = { lat: 10.6419388, lng: -61.2808954 };
   const [editingDeliveryId, setEditingDeliveryId] = useState<string | null>(
     null
   );
   const randomIcon = getRandomCarIcon();
+
+  const [markerPosition, setMarkerPosition] = useState<L.LatLng | null>(null);
+  const [dragAddress, setDragAddress] = useState<string>("");
+  const [markerItemId, setMarkerItemId] = useState<string>("");
 
   useEffect(() => {
     const aeropostOrdersGet = async () => {
@@ -131,7 +169,7 @@ const Deliveries: React.FC = () => {
   }, []);
 
   const syncAddressLonLat = async () => {
-    const firstFive = aeropostDeliveries.slice(0, 5); // Slice records to only do first 25
+    const firstFive = aeropostDeliveries.slice(0, 15); // Slice records to only do first 25
     const updatedDeliveries = await Promise.all(
       firstFive.map(async (delivery) => {
         const coords = await getLatLngFromAddress(
@@ -147,43 +185,77 @@ const Deliveries: React.FC = () => {
 
     setAeropostDeliveries([
       ...updatedDeliveries,
-      ...aeropostDeliveries.slice(5), // Slice records to only do first 25
+      ...aeropostDeliveries.slice(15), // Slice records to only do first 25
     ]);
     console.log("Updated deliveries with coordinates", updatedDeliveries);
   };
 
-  const handleAddressChange = (id: string, value: string) => {
-    setEditingAddresses((prev) => ({
-      ...prev,
-      [id]: value,
-    }));
+  // const handleAddressChange = (id: string, value: string) => {
+  //   setEditingAddresses((prev) => ({
+  //     ...prev,
+  //     [id]: value,
+  //   }));
+  // };
+
+  // const handleAddressBlur = async (delivery: any) => {
+  //   const newAddress = editingAddresses[delivery.id];
+  //   if (!newAddress || newAddress === delivery.address) return;
+
+  //   // Geocode the new address
+  //   const coords = await getLatLngFromAddress(
+  //     `${newAddress}, ${delivery.city}, Trinidad and Tobago`
+  //   );
+
+  //   // Update the delivery in state
+  //   setAeropostDeliveries((prev) =>
+  //     prev.map((item) =>
+  //       item.id === delivery.id
+  //         ? {
+  //             ...item,
+  //             address: newAddress,
+  //             coordinates: coords,
+  //           }
+  //         : item
+  //     )
+  //   );
+  // };
+
+  // Handler for when marker is dragged
+  const handleDragEnd = async (e: any) => {
+    const marker = e.target;
+    const newPos = marker.getLatLng();
+    setMarkerPosition(newPos);
+    const newAddress = await reverseGeocode(newPos.lat, newPos.lng);
+    console.log("newAddress", newAddress);
+    setDragAddress(newAddress);
   };
 
-  const handleAddressBlur = async (delivery: any) => {
-    const newAddress = editingAddresses[delivery.id];
-    if (!newAddress || newAddress === delivery.address) return;
+  const resetAddressMarket = () => {
+    setMarkerItemId("");
+    setMarkerPosition(null);
+  };
 
-    // Geocode the new address
-    const coords = await getLatLngFromAddress(
-      `${newAddress}, ${delivery.city}, Trinidad and Tobago`
-    );
-
-    // Update the delivery in state
+  const saveMarkerAddress = () => {
     setAeropostDeliveries((prev) =>
       prev.map((item) =>
-        item.id === delivery.id
+        item.id === markerItemId
           ? {
               ...item,
-              address: newAddress,
-              coordinates: coords,
+              address: dragAddress,
+              coordinates: {
+                coordinates: {
+                  lat: markerPosition?.lat?.toFixed(4),
+                  lng: markerPosition?.lng?.toFixed(4),
+                },
+                isValid: true,
+                wasUpdated: true,
+                editable: true,
+              },
             }
           : item
       )
     );
-  };
-
-  const checkPositionIsNumber = (coordinates: any) => {
-    return { lat: Number(coordinates.lat), lng: Number(coordinates.lng) };
+    resetAddressMarket();
   };
 
   const savedata = () => {
@@ -212,9 +284,7 @@ const Deliveries: React.FC = () => {
                   mapdeliveries?.coordinates?.coordinates?.lng && (
                     <Marker
                       key={mapdeliveries.id}
-                      position={checkPositionIsNumber(
-                        mapdeliveries?.coordinates?.coordinates
-                      )}
+                      position={mapdeliveries?.coordinates?.coordinates}
                       icon={randomIcon} // or use a stable icon per delivery
                     >
                       <Popup>
@@ -225,7 +295,40 @@ const Deliveries: React.FC = () => {
                     </Marker>
                   )
               )}
+            {/* Only one marker, draggable */}
+            {markerPosition && (
+              <Marker
+                position={markerPosition}
+                icon={randomIcon}
+                draggable={true}
+                eventHandlers={{
+                  dragend: handleDragEnd,
+                }}
+              >
+                <Popup>
+                  {dragAddress}
+                  <br />
+                  Address at {markerPosition.lat.toFixed(4)},{" "}
+                  {markerPosition.lng.toFixed(4)}
+                  <br />
+                  <IonButton
+                    color={"secondary"}
+                    onClick={() => saveMarkerAddress()}
+                  >
+                    Save
+                  </IonButton>
+                </Popup>
+              </Marker>
+            )}
           </>
+          {/* Add clickable dragable marker */}
+          {markerItemId && (
+            <ClickAndDragMarker
+              markerPosition={markerPosition}
+              setMarkerPosition={setMarkerPosition}
+              setAddress={setDragAddress}
+            />
+          )}
         </MapContainer>
       </div>
       <div className="deliveries-admin-page">
@@ -331,27 +434,46 @@ const Deliveries: React.FC = () => {
                         //   }
                         //   onIonBlur={() => handleAddressBlur(aeroDeliveries)}
                         // ></IonInput>
-                        <AddressAutocompleteInput
-                          delivery={aeroDeliveries}
-                          onAddressSelected={(address, coordinates) => {
-                            setAeropostDeliveries((prev) =>
-                              prev.map((item) =>
-                                item.id === aeroDeliveries.id
-                                  ? {
-                                      ...item,
-                                      address,
-                                      coordinates: {
-                                        ...coordinates,
-                                        isValid: true,
-                                        wasUpdated: true,
-                                        editable: true,
-                                      },
-                                    }
-                                  : item
-                              )
-                            );
-                          }}
-                        />
+                        <>
+                          <AddressAutocompleteInput
+                            delivery={aeroDeliveries}
+                            onAddressSelected={(address, coordinates) => {
+                              setAeropostDeliveries((prev) =>
+                                prev.map((item) =>
+                                  item.id === aeroDeliveries.id
+                                    ? {
+                                        ...item,
+                                        address,
+                                        coordinates: {
+                                          coordinates: {
+                                            lat: coordinates.lat,
+                                            lng: coordinates.lng,
+                                          },
+                                          isValid: true,
+                                          wasUpdated: true,
+                                          editable: true,
+                                        },
+                                      }
+                                    : item
+                                )
+                              );
+                            }}
+                          />
+                          {(!markerItemId ||
+                            markerItemId === aeroDeliveries.id) && (
+                            <IonButton
+                              className="ion-margin-start"
+                              color={!markerItemId ? "secondary" : "danger"}
+                              onClick={() =>
+                                !markerItemId
+                                  ? setMarkerItemId(aeroDeliveries.id)
+                                  : resetAddressMarket()
+                              }
+                            >
+                              <IonIcon icon={locate}></IonIcon>
+                            </IonButton>
+                          )}
+                        </>
                       ) : (
                         <>
                           <p>{`${aeroDeliveries.address} ${aeroDeliveries.city}`}</p>
