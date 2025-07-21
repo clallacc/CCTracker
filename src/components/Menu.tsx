@@ -35,6 +35,7 @@ import "./Menu.css";
 import { checkEnvironment, handleRoute, userSettings } from "../services/util";
 import { useEffect, useState } from "react";
 import { useAppContext } from "../services/appContext";
+import { useAdminOptions } from "../services/adminOptions";
 
 interface AppPage {
   url: string;
@@ -44,12 +45,6 @@ interface AppPage {
 }
 
 const appAdminPages: AppPage[] = [
-  {
-    title: "Drivers",
-    url: "/Drivers",
-    iosIcon: carOutline,
-    mdIcon: carSharp,
-  },
   {
     title: "Track Driver",
     url: "/Track-Drivers",
@@ -112,7 +107,9 @@ const appDeliveryPages: AppPage[] = [
 const Menu: React.FC = () => {
   const location = useLocation();
   const { appState, setAppState } = useAppContext();
+  const { options, updateOptions } = useAdminOptions();
   const [isMobile, setIsMobile] = useState(true);
+  const [currentURL, setCurrentUrl] = useState("");
 
   useEffect(() => {
     const checkDevice = async () => {
@@ -138,12 +135,19 @@ const Menu: React.FC = () => {
               return (
                 <IonMenuToggle key={index} autoHide={false}>
                   <IonItem
+                    style={
+                      currentURL === appPage.url
+                        ? { "--background": "#e8e8e8" }
+                        : undefined
+                    }
                     className={
                       location.pathname === appPage.url ? "selected" : ""
                     }
-                    onClick={() =>
-                      handleRoute(appPage.url, appState, setAppState)
-                    }
+                    onClick={() => {
+                      handleRoute(appPage.url, appState, setAppState),
+                        setCurrentUrl(appPage.url),
+                        console.log(appPage.url, appState.page);
+                    }}
                     // routerLink={appPage.url}
                     // routerDirection="none"
                     lines="none"
@@ -174,9 +178,9 @@ const Menu: React.FC = () => {
                     className={
                       location.pathname === driverPage.url ? "selected" : ""
                     }
-                    onClick={() =>
-                      handleRoute(driverPage.url, appState, setAppState)
-                    }
+                    onClick={() => {
+                      handleRoute(driverPage.url, appState, setAppState);
+                    }}
                     lines="none"
                     detail={false}
                   >

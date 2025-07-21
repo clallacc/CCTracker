@@ -5,10 +5,16 @@ import {
   IonGrid,
   IonIcon,
   IonItem,
+  IonLabel,
   IonRow,
+  IonSegment,
+  IonSegmentButton,
+  IonSegmentContent,
+  IonSegmentView,
 } from "@ionic/react";
 import { getAeropostOrders } from "../services/httprequests";
 import {
+  createDeliveryInFirebase,
   deliveryCoodinatesStatus,
   getLatLngFromAddress,
 } from "../services/util";
@@ -21,12 +27,19 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import AddressAutocompleteInput from "./AddressAutocompleteInput";
-import { locate, navigate } from "ionicons/icons";
+import { addCircle, addCircleOutline, locate, navigate } from "ionicons/icons";
 import L from "leaflet";
 import car01 from "../assets/pin01.png";
 import car02 from "../assets/pin02.png";
 import car03 from "../assets/pin03.png";
 import car04 from "../assets/pin04.png";
+import {
+  prefsGetDeliveries,
+  prefsRemoveDeliveries,
+  prefsStoreDeliveries,
+} from "../services/prefs";
+import { useAdminOptions } from "../services/adminOptions";
+import StoredDeliveries from "./StoredDeliveries";
 
 // Prepare Leaflet icons for each car image
 const carIcons = [
@@ -94,6 +107,7 @@ const ClickAndDragMarker: React.FC<ClickAndDragMarkerProps> = ({
 };
 
 const Deliveries: React.FC = () => {
+  const { options } = useAdminOptions();
   const [aeropostDeliveries, setAeropostDeliveries] = useState<any[]>([]);
   const position = { lat: 10.6419388, lng: -61.2808954 };
   const [editingDeliveryId, setEditingDeliveryId] = useState<string | null>(
@@ -104,78 +118,194 @@ const Deliveries: React.FC = () => {
   const [markerPosition, setMarkerPosition] = useState<L.LatLng | null>(null);
   const [dragAddress, setDragAddress] = useState<string>("");
   const [markerItemId, setMarkerItemId] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string[]>([]);
+  const [showSaveBtn, setShowSaveBtn] = useState(false);
+  const [showSendToDriverBtn, setSendToDriverBtn] = useState(false);
+  const [showSyncAddressesBtn, setSyncAddressesBtn] = useState(true);
+  const [storedDeliveries, setStoredDeliveries] = useState<any[]>([]);
+  const [storedLoaded, setStoredLoaded] = useState(false);
+  const [adminNotice, setAdminNotice] = useState<string>("");
 
+  ///// GET STORED DELIVERIES
+  const getStoredDeliveries = async () => {
+    const deliveries = await prefsGetDeliveries();
+    console.log("deliveries", deliveries);
+    if (deliveries && deliveries.length > 0) {
+      setStoredDeliveries(deliveries);
+      setSendToDriverBtn(true);
+      setSyncAddressesBtn(false);
+      setStoredLoaded(true);
+    } else {
+      setStoredLoaded(true);
+    }
+  };
+  useEffect(() => {
+    getStoredDeliveries();
+  }, []);
+
+  ///// GET AEROPOST DELIVERIES
   useEffect(() => {
     const aeropostOrdersGet = async () => {
       try {
-        // const aeropostOrders = await getAeropostOrders("2025-06-26");
-        const accaeropostOrders = await getAeropostOrders("2025-06-26");
+        // if (!storedLoaded) return; // Wait until stored deliveries are loaded
+        // // const aeropostOrders = await getAeropostOrders("2025-06-26");
+        // console.log("storedDeliveries", storedDeliveries);
+        // if (options?.aeropost_endpoint) {
+        // const accaeropostOrders =
+        //   storedDeliveries && storedDeliveries.length > 0
+        //     ? await getAeropostOrders(options?.aeropost_endpoint)
+        //     : storedDeliveries;
 
-        // PHSH ADDRESS
-        const newDelivery = [
-          {
-            id: "9f25fc66-3f7e-4263-a617-a47c66b9ceb0",
-            reference_number: "369-95084931",
-            tracking_code: "HZ001TT5538633444412",
-            phone: "+18683821406",
-            first_name: "Akil",
-            last_name: "Nicholas",
-            city: "Arima",
-            address: "2206, Winnifred Atwell Drive, Phase 2, LaHorquetta",
-            address_extra: null,
-            country_code: "TT",
-            delivery_route: "61",
-            delivery_zen: "279",
-            postal_code: null,
-            delivery_instructions: null,
-            manifest_number: "369-95084931",
-          },
-          {
-            id: "9f127869-c36f-42da-bfd1-a654d42924uis",
-            reference_number: "369-95082094",
-            tracking_code: "HZ001TT5536342891802",
-            phone: "+18684911071",
-            first_name: "Clare",
-            last_name: "Inniss-Browne",
-            city: "Arima",
-            address: "Phase II, Buena Vista Gardens #40",
-            address_extra: null,
-            country_code: "TT",
-            delivery_route: "61",
-            delivery_zen: "279",
-            postal_code: null,
-            delivery_instructions: null,
-            manifest_number: "369-95082094",
-          },
-        ];
-        const aeropostOrders = [...accaeropostOrders, ...newDelivery];
+        // if (storedDeliveries && storedDeliveries.length > 0) {
+        //   // Use stored deliveries
+        //   setAeropostDeliveries(storedDeliveries);
+        // } else if (options?.aeropost_endpoint) {
+        // Fetch from Aeropost if no stored deliveries
+        if (options?.aeropost_endpoint) {
+          const accaeropostOrders = await getAeropostOrders(
+            options.aeropost_endpoint
+          );
 
-        // PHSH ADDRESS
+          // PHSH ADDRESS
+          // const newDelivery = [
+          //   {
+          //     id: "9f25fc66-3f7e-4263-a617-a47c66b9ceb0",
+          //     reference_number: "369-95084931",
+          //     tracking_code: "HZ001TT5538633444412",
+          //     phone: "+18683821406",
+          //     first_name: "Akil",
+          //     last_name: "Nicholas",
+          //     city: "Arima",
+          //     address: "2206, Winnifred Atwell Drive, Phase 2, LaHorquetta",
+          //     address_extra: null,
+          //     country_code: "TT",
+          //     delivery_route: "61",
+          //     delivery_zen: "279",
+          //     postal_code: null,
+          //     delivery_instructions: null,
+          //     manifest_number: "369-95084931",
+          //   },
+          //   {
+          //     id: "9f127869-c36f-42da-bfd1-a654d42924uis",
+          //     reference_number: "369-95082094",
+          //     tracking_code: "HZ001TT5536342891802",
+          //     phone: "+18684911071",
+          //     first_name: "Clare",
+          //     last_name: "Inniss-Browne",
+          //     city: "Arima",
+          //     address: "Phase II, Buena Vista Gardens #40",
+          //     address_extra: null,
+          //     country_code: "TT",
+          //     delivery_route: "61",
+          //     delivery_zen: "279",
+          //     postal_code: null,
+          //     delivery_instructions: null,
+          //     manifest_number: "369-95082094",
+          //   },
+          //   {
+          //     id: "9f25fc77-a94e-477f-871d-d62837d08b12",
+          //     reference_number: "369-95084931",
+          //     tracking_code: "HZ001TT5538529312922",
+          //     phone: "+18687825437",
+          //     first_name: "Angela Francis",
+          //     last_name: "Gibson",
+          //     city: "Tunapuna-Piarco",
+          //     address: "Maple Drive Pineridge Heights 84",
+          //     address_extra: null,
+          //     country_code: "TT",
+          //     delivery_route: "61",
+          //     delivery_zen: "279",
+          //     postal_code: null,
+          //     delivery_instructions: null,
+          //     manifest_number: "369-95084931",
+          //   },
+          //   {
+          //     id: "9f25fc58-eb72-408d-aca8-b82d2549d4ec",
+          //     reference_number: "369-95084931",
+          //     tracking_code: "HZ001TT5538654211819",
+          //     phone: "+18687569239",
+          //     first_name: "Khadine",
+          //     last_name: "Wright",
+          //     city: "Tunapuna-Piarco",
+          //     address: "Lp 37 Phoenix Court Piarco Old Road",
+          //     address_extra: null,
+          //     country_code: "TT",
+          //     delivery_route: "61",
+          //     delivery_zen: "279",
+          //     postal_code: null,
+          //     delivery_instructions: null,
+          //     manifest_number: "369-95084931",
+          //   },
+          //   {
+          //     id: "9f25fc55-2ec6-4574-985f-4f2d6624c074",
+          //     reference_number: "369-95084931",
+          //     tracking_code: "HZ001TT5538655156311",
+          //     phone: "+18686787895",
+          //     first_name: "claudette",
+          //     last_name: "garcia",
+          //     city: "Tunapuna-Piarco",
+          //     address: "35 hilltop avenue vista heights development",
+          //     address_extra: null,
+          //     country_code: "TT",
+          //     delivery_route: "61",
+          //     delivery_zen: "279",
+          //     postal_code: null,
+          //     delivery_instructions: null,
+          //     manifest_number: "369-95084931",
+          //   },
+          // ];
+          // const aeropostOrders = [...accaeropostOrders, ...newDelivery];
+          // PHSH ADDRESS
 
-        // Sort orders by city alphabetically
-        const sortedOrders = aeropostOrders.sort((a: any, b: any) => {
-          if (a.city < b.city) return -1;
-          if (a.city > b.city) return 1;
-          return 0;
-        });
+          // Sort orders by city alphabetically
+          const sortedOrders = accaeropostOrders.sort((a: any, b: any) => {
+            if (a.city < b.city) return -1;
+            if (a.city > b.city) return 1;
+            return 0;
+          });
 
-        setAeropostDeliveries(sortedOrders);
+          console.log("sortedOrders", sortedOrders);
+          setAeropostDeliveries(sortedOrders);
+        } else {
+          setAdminNotice(
+            "Please enter a delivery endpoint under options menu."
+          );
+        }
+        // }
       } catch (error) {
         console.error("Error fetching or processing deliveries:", error);
       }
     };
 
     aeropostOrdersGet();
-  }, []);
+  }, [options, storedLoaded, storedDeliveries]);
+
+  const loadStoredDeliveries = async () => {};
 
   const syncAddressLonLat = async () => {
-    const firstFive = aeropostDeliveries.slice(0, 15); // Slice records to only do first 25
+    console.log("selectedCity", selectedCity);
+
+    // Determine which deliveries to update
+    let deliveriesToUpdate;
+    if (selectedCity.length > 0) {
+      deliveriesToUpdate = aeropostDeliveries.filter((delivery) =>
+        selectedCity.includes(delivery.city)
+      );
+    } else {
+      deliveriesToUpdate = aeropostDeliveries;
+    }
+
+    // Limit to first 15 if you want, or remove .slice(0, 15) to do all
+    const firstN = deliveriesToUpdate.slice(
+      0,
+      Number(options?.address_sync_limit)
+    );
+
     const updatedDeliveries = await Promise.all(
-      firstFive.map(async (delivery) => {
+      firstN.map(async (delivery) => {
         const coords = await getLatLngFromAddress(
           `${delivery.address}, ${delivery.city}, Trinidad and Tobago`
         );
-
         return {
           ...delivery,
           coordinates: coords,
@@ -183,42 +313,16 @@ const Deliveries: React.FC = () => {
       })
     );
 
-    setAeropostDeliveries([
-      ...updatedDeliveries,
-      ...aeropostDeliveries.slice(15), // Slice records to only do first 25
-    ]);
+    // Merge updated deliveries back into the full list
+    const updatedAeropostDeliveries = aeropostDeliveries.map((delivery) => {
+      const updated = updatedDeliveries.find((u) => u.id === delivery.id);
+      return updated ? updated : delivery;
+    });
+
+    setAeropostDeliveries(updatedAeropostDeliveries);
+    setShowSaveBtn(true);
     console.log("Updated deliveries with coordinates", updatedDeliveries);
   };
-
-  // const handleAddressChange = (id: string, value: string) => {
-  //   setEditingAddresses((prev) => ({
-  //     ...prev,
-  //     [id]: value,
-  //   }));
-  // };
-
-  // const handleAddressBlur = async (delivery: any) => {
-  //   const newAddress = editingAddresses[delivery.id];
-  //   if (!newAddress || newAddress === delivery.address) return;
-
-  //   // Geocode the new address
-  //   const coords = await getLatLngFromAddress(
-  //     `${newAddress}, ${delivery.city}, Trinidad and Tobago`
-  //   );
-
-  //   // Update the delivery in state
-  //   setAeropostDeliveries((prev) =>
-  //     prev.map((item) =>
-  //       item.id === delivery.id
-  //         ? {
-  //             ...item,
-  //             address: newAddress,
-  //             coordinates: coords,
-  //           }
-  //         : item
-  //     )
-  //   );
-  // };
 
   // Handler for when marker is dragged
   const handleDragEnd = async (e: any) => {
@@ -258,8 +362,124 @@ const Deliveries: React.FC = () => {
     resetAddressMarket();
   };
 
-  const savedata = () => {
-    console.log("delivery addresses", aeropostDeliveries);
+  const addRemoveCity = (city: string) => {
+    setSelectedCity((prevSelected) => {
+      if (prevSelected.includes(city)) {
+        // Remove city if it exists
+        return prevSelected.filter((c) => c !== city);
+      } else {
+        // Add city if it doesn't exist
+        return [...prevSelected, city];
+      }
+    });
+  };
+
+  // const savedata = async () => {
+  //   if (!aeropostDeliveries.length) return;
+
+  //   // Group deliveries by city (case-insensitive)
+  //   const deliveriesByCity = aeropostDeliveries.reduce<Record<string, any[]>>(
+  //     (acc, delivery) => {
+  //       const city = delivery.city.toLowerCase();
+  //       if (!acc[city]) acc[city] = [];
+  //       acc[city].push(delivery);
+  //       return acc;
+  //     },
+  //     {} as Record<string, typeof aeropostDeliveries>
+  //   );
+
+  //   // For each city, create the delivery object and save it
+  //   for (const [city, deliveries] of Object.entries(deliveriesByCity)) {
+  //     const deliveryObj = {
+  //       id: `${deliveries[0].reference_number}-${city}`,
+  //       endpoint: options?.aeropost_endpoint,
+  //       area: city,
+  //       driver: null,
+  //       deliveries,
+  //     };
+  //     console.log(deliveryObj); // For debugging, remove if not needed
+  //     await prefsStoreDeliveries(deliveryObj);
+  //   }
+  //   getStoredDeliveries();
+  //   setSendToDriverBtn(true);
+  //   setSyncAddressesBtn(false);
+  // };
+
+  const savedata = async () => {
+    if (!aeropostDeliveries.length) return;
+
+    // Group deliveries by city (case-insensitive)
+    const deliveriesByCity = aeropostDeliveries.reduce<Record<string, any[]>>(
+      (acc, delivery) => {
+        const city = delivery.city.toLowerCase();
+        if (!acc[city]) acc[city] = [];
+        acc[city].push(delivery);
+        return acc;
+      },
+      {} as Record<string, typeof aeropostDeliveries>
+    );
+
+    // Normalize selectedCity for case-insensitive comparison
+    const selectedCitySet = new Set(selectedCity.map((c) => c.toLowerCase()));
+    const allDeliveryObjs = [];
+
+    for (const [city, deliveries] of Object.entries(deliveriesByCity)) {
+      // Check if this city is in selectedCity
+      if (selectedCitySet.has(city)) {
+        // Store only the deliveries for the selected city
+        const deliveryObj = {
+          id: `${deliveries[0].reference_number}-${city}`,
+          endpoint: options?.aeropost_endpoint,
+          area: city,
+          driver: null,
+          deliveries,
+        };
+        allDeliveryObjs.push(deliveryObj);
+      } else {
+        // Check if any city in this group is in selectedCity
+        const filteredDeliveries = deliveries.filter((d) =>
+          selectedCitySet.has(d.city.toLowerCase())
+        );
+        if (filteredDeliveries.length > 0) {
+          // Store only the deliveries for the selected cities in this group
+          const deliveryObj = {
+            id: `${filteredDeliveries[0].reference_number}-${city}`,
+            endpoint: options?.aeropost_endpoint,
+            area: city,
+            driver: null,
+            deliveries: filteredDeliveries,
+          };
+          allDeliveryObjs.push(deliveryObj);
+        } else {
+          // No city in selectedCity, store all records in the group
+          const deliveryObj = {
+            id: `${deliveries[0].reference_number}-${city}`,
+            endpoint: options?.aeropost_endpoint,
+            area: city,
+            driver: null,
+            deliveries,
+          };
+          allDeliveryObjs.push(deliveryObj);
+        }
+      }
+      await prefsStoreDeliveries(allDeliveryObjs);
+    }
+
+    getStoredDeliveries();
+    setSendToDriverBtn(true);
+    setSyncAddressesBtn(false);
+  };
+
+  const storeFirebaseDeliveries = async () => {
+    try {
+      const deliveries = await prefsGetDeliveries();
+      console.log("deliv", deliveries);
+      await createDeliveryInFirebase(deliveries).then(() => {
+        prefsRemoveDeliveries();
+      });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
@@ -332,182 +552,232 @@ const Deliveries: React.FC = () => {
         </MapContainer>
       </div>
       <div className="deliveries-admin-page">
-        <IonGrid>
-          <IonItem>
-            <h2>Deliveries</h2>
-            <IonButton
-              onClick={() => syncAddressLonLat()}
-              expand="block"
-              shape="round"
-              slot="end"
-            >
-              Sync Addresses
-            </IonButton>
-            <IonButton
-              onClick={() => savedata()}
-              expand="block"
-              fill="outline"
-              shape="round"
-              slot="end"
-            >
-              Save
-            </IonButton>
-          </IonItem>
-          <IonRow>
-            <IonCol size="2">
+        <IonSegment value="first">
+          <IonSegmentButton value="aeropost" contentId="aeropost">
+            <IonLabel>Aeropost</IonLabel>
+          </IonSegmentButton>
+          <IonSegmentButton value="stored" contentId="stored">
+            <IonLabel>Stored</IonLabel>
+          </IonSegmentButton>
+        </IonSegment>
+        <IonSegmentView>
+          <IonSegmentContent id="aeropost">
+            <IonGrid>
               <IonItem>
-                <h3>Order/Tracking No</h3>
-              </IonItem>
-            </IonCol>
-            <IonCol size="2">
-              <IonItem>
-                <h3>Customer</h3>
-              </IonItem>
-            </IonCol>
-            <IonCol size="5">
-              <IonItem>
-                <h3>Address</h3>
-              </IonItem>
-            </IonCol>
-            <IonCol size="2">
-              <IonItem>
-                <h3>Phone</h3>
-              </IonItem>
-            </IonCol>
-            <IonCol size="1">
-              <IonItem>
-                <h3>Status</h3>
-              </IonItem>
-            </IonCol>
-          </IonRow>
-
-          {aeropostDeliveries.map((aeroDeliveries, idx) => {
-            // Determine if this is the first delivery of a new city
-            const isFirstOfCity =
-              idx === 0 ||
-              aeroDeliveries.city !== aeropostDeliveries[idx - 1].city;
-
-            return (
-              <React.Fragment key={aeroDeliveries.id}>
-                {isFirstOfCity && (
-                  <IonRow className="city-header-row">
-                    <IonCol size="12">
-                      <IonItem>
-                        <h4
-                          style={{ margin: "16px 0 8px 0", fontWeight: "bold" }}
-                        >
-                          {aeroDeliveries.city}
-                        </h4>
-                      </IonItem>
-                    </IonCol>
-                  </IonRow>
+                <h2>Deliveries</h2>
+                {showSyncAddressesBtn && (
+                  <IonButton
+                    onClick={() => syncAddressLonLat()}
+                    expand="block"
+                    shape="round"
+                    slot="end"
+                  >
+                    Sync Addresses
+                  </IonButton>
                 )}
-                <IonRow className="delivery-row">
-                  <IonCol size="2">
-                    <IonItem lines="none">
-                      <p>{aeroDeliveries.tracking_code}</p>
-                    </IonItem>
-                  </IonCol>
-                  <IonCol size="2">
-                    <IonItem lines="none">
-                      <p>{`${aeroDeliveries.first_name} ${aeroDeliveries.last_name}`}</p>
-                    </IonItem>
-                  </IonCol>
-                  <IonCol style={{ fontWeight: "bold" }} size="5">
-                    <IonItem
-                      style={{ position: "relative", width: "100%" }}
-                      lines="none"
-                    >
-                      {(aeroDeliveries?.coordinates &&
-                        !aeroDeliveries?.coordinates?.isValid) ||
-                      editingDeliveryId === aeroDeliveries.id ? (
-                        // <IonInput
-                        //   label={aeroDeliveries.address}
-                        //   labelPlacement="floating"
-                        //   fill="outline"
-                        //   placeholder="Enter Address"
-                        //   onIonChange={(e) =>
-                        //     handleAddressChange(
-                        //       aeroDeliveries.id,
-                        //       e.detail.value ?? ""
-                        //     )
-                        //   }
-                        //   onIonBlur={() => handleAddressBlur(aeroDeliveries)}
-                        // ></IonInput>
-                        <>
-                          <AddressAutocompleteInput
-                            delivery={aeroDeliveries}
-                            onAddressSelected={(address, coordinates) => {
-                              setAeropostDeliveries((prev) =>
-                                prev.map((item) =>
-                                  item.id === aeroDeliveries.id
-                                    ? {
-                                        ...item,
-                                        address,
-                                        coordinates: {
-                                          coordinates: {
-                                            lat: coordinates.lat,
-                                            lng: coordinates.lng,
-                                          },
-                                          isValid: true,
-                                          wasUpdated: true,
-                                          editable: true,
-                                        },
-                                      }
-                                    : item
-                                )
-                              );
-                            }}
-                          />
-                          {(!markerItemId ||
-                            markerItemId === aeroDeliveries.id) && (
-                            <IonButton
-                              className="ion-margin-start"
-                              color={!markerItemId ? "secondary" : "danger"}
-                              onClick={() =>
-                                !markerItemId
-                                  ? setMarkerItemId(aeroDeliveries.id)
-                                  : resetAddressMarket()
-                              }
+                {showSaveBtn && (
+                  <IonButton
+                    onClick={() => savedata()}
+                    expand="block"
+                    fill="outline"
+                    shape="round"
+                    slot="end"
+                  >
+                    Save
+                  </IonButton>
+                )}
+                {showSendToDriverBtn && (
+                  <IonButton
+                    onClick={() => storeFirebaseDeliveries()}
+                    color={"secondary"}
+                    expand="block"
+                    shape="round"
+                    slot="end"
+                  >
+                    Send to Driver
+                  </IonButton>
+                )}
+              </IonItem>
+              <IonRow>
+                <IonCol size="2">
+                  <IonItem>
+                    <h4>Order/Tracking No</h4>
+                  </IonItem>
+                </IonCol>
+                <IonCol size="2">
+                  <IonItem>
+                    <h4>Customer</h4>
+                  </IonItem>
+                </IonCol>
+                <IonCol size="5">
+                  <IonItem>
+                    <h4>Address</h4>
+                  </IonItem>
+                </IonCol>
+                <IonCol size="2">
+                  <IonItem>
+                    <h4>Phone</h4>
+                  </IonItem>
+                </IonCol>
+                <IonCol size="1">
+                  <IonItem>
+                    <h4>Status</h4>
+                  </IonItem>
+                </IonCol>
+              </IonRow>
+
+              {aeropostDeliveries.map((aeroDeliveries, idx) => {
+                // Determine if this is the first delivery of a new city
+                const isFirstOfCity =
+                  idx === 0 ||
+                  aeroDeliveries.city !== aeropostDeliveries[idx - 1].city;
+
+                return (
+                  <React.Fragment key={aeroDeliveries.id}>
+                    {isFirstOfCity && (
+                      <IonRow className="city-header-row">
+                        <IonCol size="12">
+                          <IonItem>
+                            <h4
+                              style={{
+                                margin: "16px 0 8px 0",
+                                fontWeight: "bold",
+                              }}
                             >
-                              <IonIcon icon={locate}></IonIcon>
-                            </IonButton>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <p>{`${aeroDeliveries.address} ${aeroDeliveries.city}`}</p>
-                          {(aeroDeliveries?.coordinates?.editable ||
-                            aeroDeliveries?.wasUpdated) && (
+                              {aeroDeliveries.city}
+                            </h4>
                             <IonButton
-                              onClick={() =>
-                                setEditingDeliveryId(aeroDeliveries.id)
-                              }
+                              onClick={() => {
+                                addRemoveCity(aeroDeliveries.city);
+                              }}
+                              className="ion-activatable ripple-parent rectangle"
+                              fill="clear"
                               slot="end"
-                              fill="outline"
                             >
-                              <IonIcon icon={navigate}></IonIcon>
+                              <IonIcon
+                                icon={
+                                  selectedCity.includes(aeroDeliveries.city)
+                                    ? addCircle
+                                    : addCircleOutline
+                                }
+                              ></IonIcon>
                             </IonButton>
+                          </IonItem>
+                        </IonCol>
+                      </IonRow>
+                    )}
+                    <IonRow className="delivery-row">
+                      <IonCol size="2">
+                        <IonItem lines="none">
+                          <p>{aeroDeliveries.tracking_code}</p>
+                        </IonItem>
+                      </IonCol>
+                      <IonCol size="2">
+                        <IonItem lines="none">
+                          <p>{`${aeroDeliveries.first_name} ${aeroDeliveries.last_name}`}</p>
+                        </IonItem>
+                      </IonCol>
+                      <IonCol style={{ fontWeight: "bold" }} size="5">
+                        <IonItem
+                          style={{ position: "relative", width: "100%" }}
+                          lines="none"
+                        >
+                          {(aeroDeliveries?.coordinates &&
+                            !aeroDeliveries?.coordinates?.isValid) ||
+                          editingDeliveryId === aeroDeliveries.id ? (
+                            // <IonInput
+                            //   label={aeroDeliveries.address}
+                            //   labelPlacement="floating"
+                            //   fill="outline"
+                            //   placeholder="Enter Address"
+                            //   onIonChange={(e) =>
+                            //     handleAddressChange(
+                            //       aeroDeliveries.id,
+                            //       e.detail.value ?? ""
+                            //     )
+                            //   }
+                            //   onIonBlur={() => handleAddressBlur(aeroDeliveries)}
+                            // ></IonInput>
+                            <>
+                              <AddressAutocompleteInput
+                                delivery={aeroDeliveries}
+                                onAddressSelected={(address, coordinates) => {
+                                  setAeropostDeliveries((prev) =>
+                                    prev.map((item) =>
+                                      item.id === aeroDeliveries.id
+                                        ? {
+                                            ...item,
+                                            address,
+                                            coordinates: {
+                                              coordinates: {
+                                                lat: coordinates.lat,
+                                                lng: coordinates.lng,
+                                              },
+                                              isValid: true,
+                                              wasUpdated: true,
+                                              editable: true,
+                                            },
+                                          }
+                                        : item
+                                    )
+                                  );
+                                }}
+                              />
+                              {(!markerItemId ||
+                                markerItemId === aeroDeliveries.id) && (
+                                <IonButton
+                                  className="ion-margin-start"
+                                  color={!markerItemId ? "secondary" : "danger"}
+                                  onClick={() =>
+                                    !markerItemId
+                                      ? setMarkerItemId(aeroDeliveries.id)
+                                      : resetAddressMarket()
+                                  }
+                                >
+                                  <IonIcon icon={locate}></IonIcon>
+                                </IonButton>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <p>{`${aeroDeliveries.address} ${aeroDeliveries.city}`}</p>
+                              {(aeroDeliveries?.coordinates?.editable ||
+                                aeroDeliveries?.wasUpdated) && (
+                                <IonButton
+                                  onClick={() =>
+                                    setEditingDeliveryId(aeroDeliveries.id)
+                                  }
+                                  slot="end"
+                                  fill="outline"
+                                >
+                                  <IonIcon icon={navigate}></IonIcon>
+                                </IonButton>
+                              )}
+                            </>
                           )}
-                        </>
-                      )}
-                    </IonItem>
-                  </IonCol>
-                  <IonCol size="2">
-                    <IonItem lines="none">
-                      <p>{aeroDeliveries.phone}</p>
-                    </IonItem>
-                  </IonCol>
-                  <IonCol size="1">
-                    <IonItem lines="none">
-                      {deliveryCoodinatesStatus(aeroDeliveries)}
-                    </IonItem>
-                  </IonCol>
-                </IonRow>
-              </React.Fragment>
-            );
-          })}
-        </IonGrid>
+                        </IonItem>
+                      </IonCol>
+                      <IonCol size="2">
+                        <IonItem lines="none">
+                          <p>{aeroDeliveries.phone}</p>
+                        </IonItem>
+                      </IonCol>
+                      <IonCol size="1">
+                        <IonItem lines="none">
+                          {deliveryCoodinatesStatus(aeroDeliveries)}
+                        </IonItem>
+                      </IonCol>
+                    </IonRow>
+                  </React.Fragment>
+                );
+              })}
+            </IonGrid>
+          </IonSegmentContent>
+          <IonSegmentContent id="stored">
+            <StoredDeliveries />
+          </IonSegmentContent>
+        </IonSegmentView>
+        {adminNotice && <p>{adminNotice}</p>}
       </div>
     </>
   );

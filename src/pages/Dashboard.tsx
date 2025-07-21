@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  IonBackdrop,
   IonButton,
   IonButtons,
   IonContent,
@@ -42,8 +43,11 @@ import Directions from "../components/Directions";
 import { useAppContext } from "../services/appContext";
 import { auth } from "../services/firebase";
 import Intro from "../components/Intro";
-import { home, pin, refresh } from "ionicons/icons";
+import { home, options, pin, refresh } from "ionicons/icons";
 import Deliveries from "../components/Deliveries";
+import Options from "../components/Options";
+import TrackDriver from "../components/TrackDriver";
+import EagleView from "../components/EagleView";
 // import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 
 const Page: React.FC = () => {
@@ -65,6 +69,7 @@ const Page: React.FC = () => {
   const [adminDriverData, setAdminDriverData] = useState<any>([]);
   const [presentAlert] = useIonAlert();
   const [currentPage, setCurrentPage] = useState(appState.page);
+  const [showOptions, setShowOptions] = useState(false);
 
   // console.log("loginStatus", auth?.currentUser?.email);
   // const initializeAppAdmin = async () => {
@@ -258,6 +263,7 @@ const Page: React.FC = () => {
 
   return (
     <>
+      <IonBackdrop visible={showOptions}></IonBackdrop>
       <IonPage>
         {showIntro ? (
           <Intro setShowIntro={closeIntro} />
@@ -270,6 +276,9 @@ const Page: React.FC = () => {
                 </IonButtons>
                 <IonTitle>{name}</IonTitle>
                 <IonButtons slot="end">
+                  <IonButton onClick={() => setShowOptions(true)}>
+                    <IonIcon icon={options}></IonIcon>
+                  </IonButton>
                   <IonButton onClick={refreshView}>
                     <IonIcon icon={refresh}></IonIcon>
                   </IonButton>
@@ -296,7 +305,12 @@ const Page: React.FC = () => {
                 //   driverId={adminDriverData}
                 //   setDriverId={setAdminDriverData}
                 // />
-                <Deliveries />
+                <>
+                  {(appState.page === "dashboard" ||
+                    appState.page === "deliveries") && <Deliveries />}
+                  {appState.page === "track-drivers" && <TrackDriver />}
+                  {appState.page === "eagle-view" && <EagleView />}
+                </>
               )}
               {/* <MapContainer
                 center={position}
@@ -402,6 +416,15 @@ const Page: React.FC = () => {
           </>
         )}
       </IonPage>
+      {/* Show backdrop and options only when showOptions is true */}
+      {showOptions && (
+        <>
+          <Options
+            setIsOptionsOpen={setShowOptions}
+            isOptionsOpen={showOptions}
+          />
+        </>
+      )}
     </>
   );
 };

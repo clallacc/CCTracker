@@ -1,4 +1,5 @@
 import {
+  prefsGetAdminOptions,
   prefsGetUserSettings,
   prefsRemoveUserSettings,
   prefsStoreUserSettings,
@@ -42,6 +43,16 @@ export const userSettings = async () => {
   }
 };
 
+export const adminOptions = async () => {
+  try {
+    const options = await prefsGetAdminOptions();
+    return options;
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+};
+
 export const isLoggedIn = async () => {
   try {
     return auth?.currentUser?.email;
@@ -75,11 +86,16 @@ export const handleRoute = (
       window.location.reload();
       console.log("your are logged out", appContext);
       break;
-    case "deliveries":
-      setAppContext({ ...appContext, page: "deliveries" });
+    case "/Track-Drivers":
+      setAppContext({ ...appContext, page: "track-drivers" });
+      console.log("page", "deliveries");
       break;
-    case "profile":
-      setAppContext({ ...appContext, page: "Profile" });
+    case "/Deliveries":
+      setAppContext({ ...appContext, page: "deliveries" });
+      console.log("page", "deliveries");
+      break;
+    case "/Eagle-View":
+      setAppContext({ ...appContext, page: "eagle-view" });
       break;
     default:
       console.log("Unknown route:", route);

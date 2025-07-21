@@ -29,3 +29,20 @@ export const prefsGetDeliveries = async () => {
   });
   return value ? JSON.parse(value) : [];
 };
+export const prefsRemoveDeliveries = async () => {
+  await Preferences.remove({
+    key: "cctracker-deliverie",
+  });
+};
+export const prefsStoreAdminOptions = async (value: any) => {
+  await Preferences.set({
+    key: "cctracker-admin-options",
+    value: JSON.stringify(value),
+  });
+};
+export const prefsGetAdminOptions = async () => {
+  const { value } = await Preferences.get({
+    key: "cctracker-admin-options",
+  });
+  return value ? JSON.parse(value) : [];
+};

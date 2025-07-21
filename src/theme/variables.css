@@ -69,3 +69,35 @@ body {
 .city-header-row ion-item {
   --background: #ebebeb;
 }
+
+.options-panel {
+  position: fixed;
+  width: auto;
+  height: 100vh;
+  background: #00000096;
+  z-index: 1000;
+}
+
+.options-panel .options {
+  width: 60%;
+  height: 100%;
+  background: #ffffff;
+  margin: 20% auto;
+  border-radius: 12px;
+}
+
+.options-panel .options ion-footer, .options-panel .options ion-footer ion-toolbar {
+  border-radius: 12px;
+}
+
+.driver-selection-row {
+  position: absolute;
+  bottom: 20px;
+  width: 90%;
+  margin: 30px;
+  padding: 10px 20px;
+  z-index: 1000;
+  background: #ffffffd6;
+  border-radius: 12px;
+  overflow-y: auto;
+}

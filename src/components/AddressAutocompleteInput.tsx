@@ -104,7 +104,10 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   };
 
   return (
-    <div style={{ position: "relative", width: "100%" }}>
+    <div
+      className="autocorrect-input-div"
+      style={{ position: "relative", width: "100%" }}
+    >
       {showDropdown && predictions.length > 0 && (
         <IonList
           style={{

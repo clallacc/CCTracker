@@ -15,7 +15,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [appState, setAppState] = useState<Record<string, any>>({
     isMobile: true,
-    page: "driver",
+    page: "dashboard",
     isLoggedIn: false,
   });
 
