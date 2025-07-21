@@ -1,4 +1,4 @@
-import { IonCol, IonGrid, IonItem, IonRow } from "@ionic/react";
+import { IonBadge, IonCol, IonGrid, IonItem, IonRow } from "@ionic/react";
 import { useEffect, useState } from "react";
 import { prefsGetDeliveries } from "../services/prefs";
 import { deliveryCoodinatesStatus } from "../services/util";
@@ -86,6 +86,7 @@ const StoredDeliveries: React.FC = () => {
                     lines="none"
                   >
                     <p>{`${delivery.address} ${delivery.city}`}</p>
+                    <IonBadge slot="end">{delivery?.status}</IonBadge>
                   </IonItem>
                 </IonCol>
                 <IonCol size="2">

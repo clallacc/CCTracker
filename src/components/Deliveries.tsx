@@ -127,21 +127,21 @@ const Deliveries: React.FC = () => {
   const [adminNotice, setAdminNotice] = useState<string>("");
 
   ///// GET STORED DELIVERIES
-  const getStoredDeliveries = async () => {
-    const deliveries = await prefsGetDeliveries();
-    console.log("deliveries", deliveries);
-    if (deliveries && deliveries.length > 0) {
-      setStoredDeliveries(deliveries);
-      setSendToDriverBtn(true);
-      setSyncAddressesBtn(false);
-      setStoredLoaded(true);
-    } else {
-      setStoredLoaded(true);
-    }
-  };
-  useEffect(() => {
-    getStoredDeliveries();
-  }, []);
+  // const getStoredDeliveries = async () => {
+  //   const deliveries = await prefsGetDeliveries();
+  //   console.log("deliveries", deliveries);
+  //   if (deliveries && deliveries.length > 0) {
+  //     setStoredDeliveries(deliveries);
+  //     setSendToDriverBtn(true);
+  //     setSyncAddressesBtn(false);
+  //     setStoredLoaded(true);
+  //   } else {
+  //     setStoredLoaded(true);
+  //   }
+  // };
+  // useEffect(() => {
+  //   getStoredDeliveries();
+  // }, []);
 
   ///// GET AEROPOST DELIVERIES
   useEffect(() => {
@@ -257,8 +257,17 @@ const Deliveries: React.FC = () => {
           // const aeropostOrders = [...accaeropostOrders, ...newDelivery];
           // PHSH ADDRESS
 
+          // Add Order status info to each order
+          // Add Order status info to each order
+          const ordersWithStatus = accaeropostOrders.map((order: any) => ({
+            ...order,
+            date_created: new Date(),
+            date_delivered: null,
+            status: "pending",
+          }));
+
           // Sort orders by city alphabetically
-          const sortedOrders = accaeropostOrders.sort((a: any, b: any) => {
+          const sortedOrders = ordersWithStatus.sort((a: any, b: any) => {
             if (a.city < b.city) return -1;
             if (a.city > b.city) return 1;
             return 0;
@@ -447,6 +456,7 @@ const Deliveries: React.FC = () => {
             endpoint: options?.aeropost_endpoint,
             area: city,
             driver: null,
+
             deliveries: filteredDeliveries,
           };
           allDeliveryObjs.push(deliveryObj);
@@ -465,7 +475,7 @@ const Deliveries: React.FC = () => {
       await prefsStoreDeliveries(allDeliveryObjs);
     }
 
-    getStoredDeliveries();
+    // getStoredDeliveries();
     setSendToDriverBtn(true);
     setSyncAddressesBtn(false);
   };
