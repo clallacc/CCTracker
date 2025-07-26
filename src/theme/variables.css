@@ -107,3 +107,8 @@ body {
   height: 100%;
   position: relative;
 }
+
+.stored-groupitem-selected ion-col, .stored-groupitem-selected ion-col ion-item{
+  background: #e1f0ec;
+  --background: #e1f0ec;
+}

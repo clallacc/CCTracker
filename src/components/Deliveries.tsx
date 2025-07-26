@@ -289,8 +289,6 @@ const Deliveries: React.FC = () => {
     aeropostOrdersGet();
   }, [options, storedLoaded, storedDeliveries]);
 
-  const loadStoredDeliveries = async () => {};
-
   const syncAddressLonLat = async () => {
     console.log("selectedCity", selectedCity);
 
@@ -361,6 +359,31 @@ const Deliveries: React.FC = () => {
                   lng: markerPosition?.lng?.toFixed(4),
                 },
                 isValid: true,
+                type: "house",
+                wasUpdated: true,
+                editable: true,
+              },
+            }
+          : item
+      )
+    );
+    resetAddressMarket();
+  };
+
+  const saveMarkerRoadAddress = () => {
+    setAeropostDeliveries((prev) =>
+      prev.map((item) =>
+        item.id === markerItemId
+          ? {
+              ...item,
+              address: dragAddress,
+              coordinates: {
+                coordinates: {
+                  lat: markerPosition?.lat?.toFixed(4),
+                  lng: markerPosition?.lng?.toFixed(4),
+                },
+                isValid: true,
+                type: "road",
                 wasUpdated: true,
                 editable: true,
               },
@@ -545,7 +568,13 @@ const Deliveries: React.FC = () => {
                     color={"secondary"}
                     onClick={() => saveMarkerAddress()}
                   >
-                    Save
+                    Save Address
+                  </IonButton>
+                  <IonButton
+                    color={"secondary"}
+                    onClick={() => saveMarkerRoadAddress()}
+                  >
+                    Save Road
                   </IonButton>
                 </Popup>
               </Marker>

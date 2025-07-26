@@ -510,6 +510,7 @@ export const getLatLngFromAddress = async (
 ): Promise<{
   coordinates: { lat: number; lng: number } | null;
   isValid: boolean;
+  type: string;
   editable: boolean;
 }> => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -522,38 +523,70 @@ export const getLatLngFromAddress = async (
     const data = await response.json();
 
     if (data.status === "OK" && data.results.length > 0) {
-      const location = data.results[0].geometry.location;
+      const result = data.results[0];
+      const location = result.geometry.location;
 
       // Optional: Check location_type for precision (e.g., "ROOFTOP" is most precise)
       const locationType = data.results[0].geometry.location_type;
       const validTypes = ["ROOFTOP", "RANGE_INTERPOLATED", "GEOMETRIC_CENTER"];
       const isValid = validTypes.includes(locationType);
+
+      // Check for street_number in address_components
+      const hasStreetNumber = result.address_components.some((component: any) =>
+        component.types.includes("street_number")
+      );
+
+      const type = hasStreetNumber ? "house" : "road";
       // editable is false by default; true only if isValid is false
       const editable = !isValid;
 
       return {
         coordinates: { lat: location.lat, lng: location.lng },
         isValid,
+        type,
         editable,
       };
     } else {
       console.error("Geocoding API error:", data.status);
-      return { coordinates: null, isValid: false, editable: true };
+      return {
+        coordinates: null,
+        isValid: false,
+        type: "undefined",
+        editable: true,
+      };
     }
   } catch (error) {
     console.error("Error fetching latitude and longitude:", error);
-    return { coordinates: null, isValid: false, editable: true };
+    return {
+      coordinates: null,
+      isValid: false,
+      type: "undefined",
+      editable: true,
+    };
   }
 };
 
 export const deliveryCoodinatesStatus = (delivery: any) => {
   if (delivery?.coordinates) {
-    if (delivery?.coordinates?.isValid) {
+    if (
+      delivery?.coordinates?.isValid &&
+      delivery?.coordinates?.type === "house"
+    ) {
       return (
         <p>
           <IonIcon color="success" icon={star}></IonIcon>
           <IonIcon color="success" icon={star}></IonIcon>
           <IonIcon color="success" icon={star}></IonIcon>
+        </p>
+      );
+    } else if (
+      delivery?.coordinates?.isValid &&
+      delivery?.coordinates?.type === "road"
+    ) {
+      return (
+        <p>
+          <IonIcon color="secondary" icon={star}></IonIcon>
+          <IonIcon color="secondary" icon={star}></IonIcon>
         </p>
       );
     } else {
