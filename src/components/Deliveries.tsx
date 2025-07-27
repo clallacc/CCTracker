@@ -40,6 +40,7 @@ import {
 } from "../services/prefs";
 import { useAdminOptions } from "../services/adminOptions";
 import StoredDeliveries from "./StoredDeliveries";
+import ActiveDeliveries from "./ActiveDeliveries";
 
 // Prepare Leaflet icons for each car image
 const carIcons = [
@@ -125,6 +126,7 @@ const Deliveries: React.FC = () => {
   const [storedDeliveries, setStoredDeliveries] = useState<any[]>([]);
   const [storedLoaded, setStoredLoaded] = useState(false);
   const [adminNotice, setAdminNotice] = useState<string>("");
+  const [segment, setSegment] = useState("aeropost");
 
   ///// GET STORED DELIVERIES
   // const getStoredDeliveries = async () => {
@@ -488,6 +490,7 @@ const Deliveries: React.FC = () => {
           const deliveryObj = {
             id: `${deliveries[0].reference_number}-${city}`,
             endpoint: options?.aeropost_endpoint,
+            delivery_date: null,
             area: city,
             driver: null,
             deliveries,
@@ -507,7 +510,7 @@ const Deliveries: React.FC = () => {
     try {
       const deliveries = await prefsGetDeliveries();
       console.log("deliv", deliveries);
-      await createDeliveryInFirebase(deliveries).then(() => {
+      await createDeliveryInFirebase({ deliveries: deliveries }).then(() => {
         prefsRemoveDeliveries();
       });
     } catch (error) {
@@ -591,16 +594,22 @@ const Deliveries: React.FC = () => {
         </MapContainer>
       </div>
       <div className="deliveries-admin-page">
-        <IonSegment value="first">
+        <IonSegment
+          value={segment}
+          onIonChange={(e) => setSegment(String(e.detail.value))}
+        >
           <IonSegmentButton value="aeropost" contentId="aeropost">
             <IonLabel>Aeropost</IonLabel>
           </IonSegmentButton>
           <IonSegmentButton value="stored" contentId="stored">
             <IonLabel>Stored</IonLabel>
           </IonSegmentButton>
+          <IonSegmentButton value="active" contentId="active">
+            <IonLabel>Active</IonLabel>
+          </IonSegmentButton>
         </IonSegment>
         <IonSegmentView>
-          <IonSegmentContent id="aeropost">
+          <IonSegmentContent id="aeropost" hidden={segment !== "aeropost"}>
             <IonGrid>
               <IonItem>
                 <h2>Deliveries</h2>
@@ -812,8 +821,12 @@ const Deliveries: React.FC = () => {
               })}
             </IonGrid>
           </IonSegmentContent>
-          <IonSegmentContent id="stored">
+          <IonSegmentContent id="stored" hidden={segment !== "stored"}>
             <StoredDeliveries />
+          </IonSegmentContent>
+          <IonSegmentContent id="active" hidden={segment !== "active"}>
+            {/* Your Active content */}
+            <ActiveDeliveries />
           </IonSegmentContent>
         </IonSegmentView>
         {adminNotice && <p>{adminNotice}</p>}

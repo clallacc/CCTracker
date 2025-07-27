@@ -12,25 +12,26 @@ import { prefsGetDeliveries, prefsStoreDeliveries } from "../services/prefs";
 import {
   createDeliveryInFirebase,
   deliveryCoodinatesStatus,
+  getInFirebaseDelivery,
 } from "../services/util";
 import { useAdminOptions } from "../services/adminOptions";
 
 const StoredDeliveries: React.FC = () => {
   const { options } = useAdminOptions();
   const [storedDeliveries, setStoredDeliveries] = useState<any[]>([]);
+  const [firebaseDeliveries, setFirebaseDeliveries] = useState<any[]>([]);
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [storedLoaded, setStoredLoaded] = useState(false);
   const [showStoreBtn, setShowStoreBtn] = useState(false);
-  const [showSubmitRouteBtn, setShowSubmitRouteBtn] = useState(false);
 
   // Alert state
   const [showAlert, setShowAlert] = useState(false);
   const [area, setArea] = useState("");
   const [driver, setDriver] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
 
   const getStoredDeliveries = async () => {
     const deliveries = await prefsGetDeliveries();
-    console.log("deliveries", deliveries);
     if (deliveries && deliveries.length > 0) {
       setStoredDeliveries(deliveries);
     }
@@ -39,6 +40,16 @@ const StoredDeliveries: React.FC = () => {
 
   useEffect(() => {
     getStoredDeliveries();
+  }, []);
+
+  useEffect(() => {
+    const getFirebaseDeliveries = async () => {
+      const firedeliveries = await getInFirebaseDelivery();
+      console.log("firedeliveries", firedeliveries[0].data);
+
+      setFirebaseDeliveries(firedeliveries);
+    };
+    getFirebaseDeliveries();
   }, []);
 
   const addDeliveryGroup = (route: any) => {
@@ -65,11 +76,16 @@ const StoredDeliveries: React.FC = () => {
     setShowAlert(true);
   };
 
-  const savedata = async (area: string, driver: string) => {
+  const savedata = async (
+    area: string,
+    driver: string,
+    deliveryDate: string
+  ) => {
     const deliveryObj = [
       {
         id: `${deliveries[0].reference_number}-${area}`,
         endpoint: options?.aeropost_endpoint,
+        delivery_date: deliveryDate,
         area: area,
         driver: driver,
         deliveries,
@@ -78,12 +94,17 @@ const StoredDeliveries: React.FC = () => {
     await prefsStoreDeliveries(deliveryObj);
     getStoredDeliveries();
     setShowAlert(false);
+    setShowStoreBtn(false);
   };
 
   const submitRoute = async () => {
+    console.log({ [deliveryDate]: storedDeliveries });
     try {
-      const deliveries = await prefsGetDeliveries();
-      await createDeliveryInFirebase(storedDeliveries).then(() => {});
+      await createDeliveryInFirebase({
+        [deliveryDate || storedDeliveries[0].delivery_date]: storedDeliveries,
+      }).then(() => {
+        alert("delivery route available to driver.");
+      });
     } catch (error) {
       console.error(error);
     }
@@ -107,6 +128,13 @@ const StoredDeliveries: React.FC = () => {
             attributes: { maxlength: 25 },
             value: driver,
           },
+          {
+            name: "date",
+            type: "date",
+            placeholder: "Select Date",
+            // Optionally, set a default value in YYYY-MM-DD format
+            value: deliveryDate,
+          },
         ]}
         buttons={[
           {
@@ -121,8 +149,12 @@ const StoredDeliveries: React.FC = () => {
               if (data.area && data.driver) {
                 setArea(data.area);
                 setDriver(data.driver);
+                // Format date from YYYY-MM-DD to DD-MM-YY
+                const [year, month, day] = data.date.split("-");
+                const formattedDate = `${day}-${month}-${year.slice(2)}`;
+                setDeliveryDate(formattedDate);
                 // Optionally, call savedata() here if you want to save immediately
-                savedata(data.area, data.driver);
+                savedata(data.area, data.driver, formattedDate);
               }
               setShowAlert(false);
             },
@@ -185,7 +217,7 @@ const StoredDeliveries: React.FC = () => {
                       Save
                     </IonButton>
                   )}
-                  {showSubmitRouteBtn && (
+                  {!showStoreBtn && (
                     <IonButton
                       onClick={() => submitRoute()}
                       expand="block"

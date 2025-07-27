@@ -663,6 +663,24 @@ export const getDeliveryInFirebase = async (): Promise<Delivery[]> => {
   }
 };
 
+export const getInFirebaseDelivery = async (): Promise<any[]> => {
+  try {
+    // Get the delivery documents from Firestore
+    const deliveryDocsRef = await getDocs(DeliveryCollectionRef);
+
+    // Map the documents to the Delivery type
+    const filteredData: any[] = deliveryDocsRef.docs.map((doc) => {
+      const data = doc.data();
+      return { id: doc.id, data: data };
+    });
+
+    return filteredData;
+  } catch (error) {
+    console.error("Error fetching deliveries:", error);
+    return [];
+  }
+};
+
 // Firebase calls
 
 // IOS Firebase calls
