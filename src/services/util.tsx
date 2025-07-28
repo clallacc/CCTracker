@@ -97,6 +97,10 @@ export const handleRoute = (
     case "/Eagle-View":
       setAppContext({ ...appContext, page: "eagle-view" });
       break;
+    case "/Driver-deliveries":
+      setAppContext({ ...appContext, page: "driver-deliveries" });
+      console.log("page", "driver-deliveries");
+      break;
     default:
       console.log("Unknown route:", route);
       // Handle any other routes if necessary

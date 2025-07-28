@@ -40,7 +40,7 @@ const StoredDeliveries: React.FC = () => {
 
   useEffect(() => {
     getStoredDeliveries();
-  }, []);
+  }, [storedDeliveries]);
 
   useEffect(() => {
     const getFirebaseDeliveries = async () => {

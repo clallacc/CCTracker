@@ -70,6 +70,8 @@ const Page: React.FC = () => {
   const [presentAlert] = useIonAlert();
   const [currentPage, setCurrentPage] = useState(appState.page);
   const [showOptions, setShowOptions] = useState(false);
+  const [driverContainerModelOpen, setDriverContainerModelOpen] =
+    useState(false);
 
   // console.log("loginStatus", auth?.currentUser?.email);
   // const initializeAppAdmin = async () => {
@@ -97,6 +99,15 @@ const Page: React.FC = () => {
   //     map?.setCenter(homePosition);
   //   }
   // }, [adminDriverData, map]);
+
+  useEffect(() => {
+    if (appState.page === "driver-deliveries") {
+      setDriverContainerModelOpen(true);
+    } else {
+      setDriverContainerModelOpen(false);
+    }
+    console.log("page del", appState.page);
+  }, [appState]);
 
   useEffect(() => {
     const initializeAppDriver = async () => {
@@ -276,9 +287,11 @@ const Page: React.FC = () => {
                 </IonButtons>
                 <IonTitle>{name}</IonTitle>
                 <IonButtons slot="end">
-                  <IonButton onClick={() => setShowOptions(true)}>
-                    <IonIcon icon={options}></IonIcon>
-                  </IonButton>
+                  {!deviceIsMobile && (
+                    <IonButton onClick={() => setShowOptions(true)}>
+                      <IonIcon icon={options}></IonIcon>
+                    </IonButton>
+                  )}
                   <IonButton onClick={refreshView}>
                     <IonIcon icon={refresh}></IonIcon>
                   </IonButton>
@@ -288,7 +301,7 @@ const Page: React.FC = () => {
 
             <IonContent className="ion-margin-top ion-padding-top" fullscreen>
               {appState.isLoggedIn && deviceIsMobile ? (
-                currentPage === "deliveries" ? (
+                appState.page === "driver-deliveries" && (
                   <DriverContainer
                     name={name}
                     position={position}
@@ -297,8 +310,10 @@ const Page: React.FC = () => {
                     endRoute={deliveryEndRoute}
                     setEndRoute={setDeliveryEndRoute}
                     setDeliveryId={setDeliveryId}
+                    isModalOpen={driverContainerModelOpen}
+                    setIsModalOpen={setDriverContainerModelOpen}
                   />
-                ) : null
+                )
               ) : (
                 // <AdminContainer
                 //   name={name}

@@ -14,8 +14,6 @@ import { useLocation } from "react-router-dom";
 import {
   archiveOutline,
   archiveSharp,
-  carOutline,
-  carSharp,
   cubeOutline,
   cubeSharp,
   heartOutline,
@@ -74,7 +72,7 @@ const appAdminPages: AppPage[] = [
 const appDeliveryPages: AppPage[] = [
   {
     title: "Deliveries",
-    url: "deliveries",
+    url: "/Driver-deliveries",
     iosIcon: archiveOutline,
     mdIcon: archiveSharp,
   },

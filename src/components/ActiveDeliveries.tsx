@@ -19,7 +19,7 @@ const ActiveDeliveries: React.FC = () => {
       }
     };
     getFirebaseDeliveries();
-  }, []);
+  }, [firebaseDeliveries]);
 
   const dateKeys = Object.keys(firebaseDeliveries);
 
@@ -98,7 +98,16 @@ const ActiveDeliveries: React.FC = () => {
                         lines="none"
                       >
                         <p>{`${delivery.address} ${delivery.city}`}</p>
-                        <IonBadge slot="end">{delivery.status}</IonBadge>
+                        <IonBadge
+                          color={
+                            delivery?.status === "delivered"
+                              ? "success"
+                              : "primary"
+                          }
+                          slot="end"
+                        >
+                          {delivery.status}
+                        </IonBadge>
                       </IonItem>
                     </IonCol>
                     <IonCol size="2">
