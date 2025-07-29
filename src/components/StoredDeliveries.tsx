@@ -30,17 +30,20 @@ const StoredDeliveries: React.FC = () => {
   const [driver, setDriver] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
 
+  // Fetch stored deliveries on mount and after changes
   const getStoredDeliveries = async () => {
     const deliveries = await prefsGetDeliveries();
     if (deliveries && deliveries.length > 0) {
       setStoredDeliveries(deliveries);
+    } else {
+      setStoredDeliveries([]); // Clear if none
     }
     setStoredLoaded(true);
   };
 
   useEffect(() => {
     getStoredDeliveries();
-  }, [storedDeliveries]);
+  }, []);
 
   useEffect(() => {
     const getFirebaseDeliveries = async () => {
@@ -92,6 +95,7 @@ const StoredDeliveries: React.FC = () => {
       },
     ];
     await prefsStoreDeliveries(deliveryObj);
+    await getStoredDeliveries();
     getStoredDeliveries();
     setShowAlert(false);
     setShowStoreBtn(false);

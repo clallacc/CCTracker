@@ -41,6 +41,7 @@ import {
 import { useAdminOptions } from "../services/adminOptions";
 import StoredDeliveries from "./StoredDeliveries";
 import ActiveDeliveries from "./ActiveDeliveries";
+import DeliveredDeliveries from "./DeliveredDeliveries";
 
 // Prepare Leaflet icons for each car image
 const carIcons = [
@@ -602,10 +603,13 @@ const Deliveries: React.FC = () => {
             <IonLabel>Aeropost</IonLabel>
           </IonSegmentButton>
           <IonSegmentButton value="stored" contentId="stored">
-            <IonLabel>Stored</IonLabel>
+            <IonLabel>Staging</IonLabel>
           </IonSegmentButton>
           <IonSegmentButton value="active" contentId="active">
             <IonLabel>Active</IonLabel>
+          </IonSegmentButton>
+          <IonSegmentButton value="delivered" contentId="delivered">
+            <IonLabel>Delivered</IonLabel>
           </IonSegmentButton>
         </IonSegment>
         <IonSegmentView>
@@ -827,6 +831,10 @@ const Deliveries: React.FC = () => {
           <IonSegmentContent id="active" hidden={segment !== "active"}>
             {/* Your Active content */}
             <ActiveDeliveries />
+          </IonSegmentContent>
+          <IonSegmentContent id="delivered" hidden={segment !== "delivered"}>
+            {/* Your delivered content */}
+            <DeliveredDeliveries />
           </IonSegmentContent>
         </IonSegmentView>
         {adminNotice && <p>{adminNotice}</p>}
