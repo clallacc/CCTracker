@@ -63,13 +63,14 @@ const carIcons = [
     iconAnchor: [20, 40],
     popupAnchor: [0, -40],
   }),
-  new L.Icon({
-    iconUrl: car04,
-    iconSize: [30, 40],
-    iconAnchor: [20, 40],
-    popupAnchor: [0, -40],
-  }),
 ];
+
+const carMarker = new L.Icon({
+  iconUrl: car04,
+  iconSize: [30, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
+});
 
 // Function to get a random icon from the array
 const getRandomCarIcon = () => {
@@ -118,149 +119,28 @@ const Deliveries: React.FC = () => {
   const randomIcon = getRandomCarIcon();
 
   const [markerPosition, setMarkerPosition] = useState<L.LatLng | null>(null);
+  const [segmentMarkerPositions, setSegmentMarkerPositions] = useState<
+    { id: string; coordinates: L.LatLngExpression }[]
+  >([]);
   const [dragAddress, setDragAddress] = useState<string>("");
   const [markerItemId, setMarkerItemId] = useState<string>("");
   const [selectedCity, setSelectedCity] = useState<string[]>([]);
   const [showSaveBtn, setShowSaveBtn] = useState(false);
-  const [showSendToDriverBtn, setSendToDriverBtn] = useState(false);
-  const [showSyncAddressesBtn, setSyncAddressesBtn] = useState(true);
   const [storedDeliveries, setStoredDeliveries] = useState<any[]>([]);
   const [storedLoaded, setStoredLoaded] = useState(false);
   const [adminNotice, setAdminNotice] = useState<string>("");
   const [segment, setSegment] = useState("aeropost");
-
-  ///// GET STORED DELIVERIES
-  // const getStoredDeliveries = async () => {
-  //   const deliveries = await prefsGetDeliveries();
-  //   console.log("deliveries", deliveries);
-  //   if (deliveries && deliveries.length > 0) {
-  //     setStoredDeliveries(deliveries);
-  //     setSendToDriverBtn(true);
-  //     setSyncAddressesBtn(false);
-  //     setStoredLoaded(true);
-  //   } else {
-  //     setStoredLoaded(true);
-  //   }
-  // };
-  // useEffect(() => {
-  //   getStoredDeliveries();
-  // }, []);
+  const [activeScreen, setActiveScreen] = useState("");
 
   ///// GET AEROPOST DELIVERIES
   useEffect(() => {
     const aeropostOrdersGet = async () => {
       try {
-        // if (!storedLoaded) return; // Wait until stored deliveries are loaded
-        // // const aeropostOrders = await getAeropostOrders("2025-06-26");
-        // console.log("storedDeliveries", storedDeliveries);
-        // if (options?.aeropost_endpoint) {
-        // const accaeropostOrders =
-        //   storedDeliveries && storedDeliveries.length > 0
-        //     ? await getAeropostOrders(options?.aeropost_endpoint)
-        //     : storedDeliveries;
-
-        // if (storedDeliveries && storedDeliveries.length > 0) {
-        //   // Use stored deliveries
-        //   setAeropostDeliveries(storedDeliveries);
-        // } else if (options?.aeropost_endpoint) {
         // Fetch from Aeropost if no stored deliveries
         if (options?.aeropost_endpoint) {
           const accaeropostOrders = await getAeropostOrders(
             options.aeropost_endpoint
           );
-
-          // PHSH ADDRESS
-          // const newDelivery = [
-          //   {
-          //     id: "9f25fc66-3f7e-4263-a617-a47c66b9ceb0",
-          //     reference_number: "369-95084931",
-          //     tracking_code: "HZ001TT5538633444412",
-          //     phone: "+18683821406",
-          //     first_name: "Akil",
-          //     last_name: "Nicholas",
-          //     city: "Arima",
-          //     address: "2206, Winnifred Atwell Drive, Phase 2, LaHorquetta",
-          //     address_extra: null,
-          //     country_code: "TT",
-          //     delivery_route: "61",
-          //     delivery_zen: "279",
-          //     postal_code: null,
-          //     delivery_instructions: null,
-          //     manifest_number: "369-95084931",
-          //   },
-          //   {
-          //     id: "9f127869-c36f-42da-bfd1-a654d42924uis",
-          //     reference_number: "369-95082094",
-          //     tracking_code: "HZ001TT5536342891802",
-          //     phone: "+18684911071",
-          //     first_name: "Clare",
-          //     last_name: "Inniss-Browne",
-          //     city: "Arima",
-          //     address: "Phase II, Buena Vista Gardens #40",
-          //     address_extra: null,
-          //     country_code: "TT",
-          //     delivery_route: "61",
-          //     delivery_zen: "279",
-          //     postal_code: null,
-          //     delivery_instructions: null,
-          //     manifest_number: "369-95082094",
-          //   },
-          //   {
-          //     id: "9f25fc77-a94e-477f-871d-d62837d08b12",
-          //     reference_number: "369-95084931",
-          //     tracking_code: "HZ001TT5538529312922",
-          //     phone: "+18687825437",
-          //     first_name: "Angela Francis",
-          //     last_name: "Gibson",
-          //     city: "Tunapuna-Piarco",
-          //     address: "Maple Drive Pineridge Heights 84",
-          //     address_extra: null,
-          //     country_code: "TT",
-          //     delivery_route: "61",
-          //     delivery_zen: "279",
-          //     postal_code: null,
-          //     delivery_instructions: null,
-          //     manifest_number: "369-95084931",
-          //   },
-          //   {
-          //     id: "9f25fc58-eb72-408d-aca8-b82d2549d4ec",
-          //     reference_number: "369-95084931",
-          //     tracking_code: "HZ001TT5538654211819",
-          //     phone: "+18687569239",
-          //     first_name: "Khadine",
-          //     last_name: "Wright",
-          //     city: "Tunapuna-Piarco",
-          //     address: "Lp 37 Phoenix Court Piarco Old Road",
-          //     address_extra: null,
-          //     country_code: "TT",
-          //     delivery_route: "61",
-          //     delivery_zen: "279",
-          //     postal_code: null,
-          //     delivery_instructions: null,
-          //     manifest_number: "369-95084931",
-          //   },
-          //   {
-          //     id: "9f25fc55-2ec6-4574-985f-4f2d6624c074",
-          //     reference_number: "369-95084931",
-          //     tracking_code: "HZ001TT5538655156311",
-          //     phone: "+18686787895",
-          //     first_name: "claudette",
-          //     last_name: "garcia",
-          //     city: "Tunapuna-Piarco",
-          //     address: "35 hilltop avenue vista heights development",
-          //     address_extra: null,
-          //     country_code: "TT",
-          //     delivery_route: "61",
-          //     delivery_zen: "279",
-          //     postal_code: null,
-          //     delivery_instructions: null,
-          //     manifest_number: "369-95084931",
-          //   },
-          // ];
-          // const aeropostOrders = [...accaeropostOrders, ...newDelivery];
-          // PHSH ADDRESS
-
-          // Add Order status info to each order
           // Add Order status info to each order
           const ordersWithStatus = accaeropostOrders.map((order: any) => ({
             ...order,
@@ -276,7 +156,6 @@ const Deliveries: React.FC = () => {
             return 0;
           });
 
-          console.log("sortedOrders", sortedOrders);
           setAeropostDeliveries(sortedOrders);
         } else {
           setAdminNotice(
@@ -293,8 +172,6 @@ const Deliveries: React.FC = () => {
   }, [options, storedLoaded, storedDeliveries]);
 
   const syncAddressLonLat = async () => {
-    console.log("selectedCity", selectedCity);
-
     // Determine which deliveries to update
     let deliveriesToUpdate;
     if (selectedCity.length > 0) {
@@ -331,8 +208,13 @@ const Deliveries: React.FC = () => {
 
     setAeropostDeliveries(updatedAeropostDeliveries);
     setShowSaveBtn(true);
-    console.log("Updated deliveries with coordinates", updatedDeliveries);
   };
+
+  useEffect(() => {
+    if (activeScreen === "aeropost") {
+      setSegmentMarkerPositions([]);
+    }
+  }, [activeScreen]);
 
   // Handler for when marker is dragged
   const handleDragEnd = async (e: any) => {
@@ -340,7 +222,6 @@ const Deliveries: React.FC = () => {
     const newPos = marker.getLatLng();
     setMarkerPosition(newPos);
     const newAddress = await reverseGeocode(newPos.lat, newPos.lng);
-    console.log("newAddress", newAddress);
     setDragAddress(newAddress);
   };
 
@@ -371,6 +252,7 @@ const Deliveries: React.FC = () => {
       )
     );
     resetAddressMarket();
+    setShowSaveBtn(true);
   };
 
   const saveMarkerRoadAddress = () => {
@@ -408,37 +290,6 @@ const Deliveries: React.FC = () => {
       }
     });
   };
-
-  // const savedata = async () => {
-  //   if (!aeropostDeliveries.length) return;
-
-  //   // Group deliveries by city (case-insensitive)
-  //   const deliveriesByCity = aeropostDeliveries.reduce<Record<string, any[]>>(
-  //     (acc, delivery) => {
-  //       const city = delivery.city.toLowerCase();
-  //       if (!acc[city]) acc[city] = [];
-  //       acc[city].push(delivery);
-  //       return acc;
-  //     },
-  //     {} as Record<string, typeof aeropostDeliveries>
-  //   );
-
-  //   // For each city, create the delivery object and save it
-  //   for (const [city, deliveries] of Object.entries(deliveriesByCity)) {
-  //     const deliveryObj = {
-  //       id: `${deliveries[0].reference_number}-${city}`,
-  //       endpoint: options?.aeropost_endpoint,
-  //       area: city,
-  //       driver: null,
-  //       deliveries,
-  //     };
-  //     console.log(deliveryObj); // For debugging, remove if not needed
-  //     await prefsStoreDeliveries(deliveryObj);
-  //   }
-  //   getStoredDeliveries();
-  //   setSendToDriverBtn(true);
-  //   setSyncAddressesBtn(false);
-  // };
 
   const savedata = async () => {
     if (!aeropostDeliveries.length) return;
@@ -500,22 +351,7 @@ const Deliveries: React.FC = () => {
         }
       }
       await prefsStoreDeliveries(allDeliveryObjs);
-    }
-
-    // getStoredDeliveries();
-    setSendToDriverBtn(true);
-    setSyncAddressesBtn(false);
-  };
-
-  const storeFirebaseDeliveries = async () => {
-    try {
-      const deliveries = await prefsGetDeliveries();
-      console.log("deliv", deliveries);
-      await createDeliveryInFirebase({ deliveries: deliveries }).then(() => {
-        prefsRemoveDeliveries();
-      });
-    } catch (error) {
-      console.error(error);
+      setShowSaveBtn(false);
     }
   };
 
@@ -533,30 +369,39 @@ const Deliveries: React.FC = () => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <>
-            {aeropostDeliveries
-              .filter((mapdeliveries) => mapdeliveries?.coordinates?.isValid)
-              .map(
-                (mapdeliveries) =>
-                  mapdeliveries?.coordinates?.coordinates?.lat &&
-                  mapdeliveries?.coordinates?.coordinates?.lng && (
-                    <Marker
-                      key={mapdeliveries.id}
-                      position={mapdeliveries?.coordinates?.coordinates}
-                      icon={randomIcon} // or use a stable icon per delivery
-                    >
-                      <Popup>
-                        {`${mapdeliveries.first_name} ${mapdeliveries.last_name}`}{" "}
-                        <br />
-                        {`${mapdeliveries.address} ${mapdeliveries.city}`}.
-                      </Popup>
-                    </Marker>
-                  )
-              )}
+            {activeScreen === "aeropost" &&
+              aeropostDeliveries
+                .filter((mapdeliveries) => mapdeliveries?.coordinates?.isValid)
+                .map(
+                  (mapdeliveries) =>
+                    mapdeliveries?.coordinates?.coordinates?.lat &&
+                    mapdeliveries?.coordinates?.coordinates?.lng && (
+                      <Marker
+                        key={mapdeliveries.id}
+                        position={mapdeliveries?.coordinates?.coordinates}
+                        icon={randomIcon} // or use a stable icon per delivery
+                      >
+                        <Popup>
+                          {`${mapdeliveries.first_name} ${mapdeliveries.last_name}`}{" "}
+                          <br />
+                          {`${mapdeliveries.address} ${mapdeliveries.city}`}.
+                        </Popup>
+                      </Marker>
+                    )
+                )}
+            {/* Show segment markers */}
+            {segmentMarkerPositions.map((segmentMarker) => (
+              <Marker
+                key={segmentMarker.id}
+                position={segmentMarker.coordinates}
+                icon={randomIcon} // your icon here
+              />
+            ))}
             {/* Only one marker, draggable */}
             {markerPosition && (
               <Marker
                 position={markerPosition}
-                icon={randomIcon}
+                icon={carMarker}
                 draggable={true}
                 eventHandlers={{
                   dragend: handleDragEnd,
@@ -599,16 +444,32 @@ const Deliveries: React.FC = () => {
           value={segment}
           onIonChange={(e) => setSegment(String(e.detail.value))}
         >
-          <IonSegmentButton value="aeropost" contentId="aeropost">
+          <IonSegmentButton
+            onClick={() => setActiveScreen("aeropost")}
+            value="aeropost"
+            contentId="aeropost"
+          >
             <IonLabel>Aeropost</IonLabel>
           </IonSegmentButton>
-          <IonSegmentButton value="stored" contentId="stored">
+          <IonSegmentButton
+            onClick={() => setActiveScreen("staging")}
+            value="stored"
+            contentId="stored"
+          >
             <IonLabel>Staging</IonLabel>
           </IonSegmentButton>
-          <IonSegmentButton value="active" contentId="active">
+          <IonSegmentButton
+            onClick={() => setActiveScreen("active")}
+            value="active"
+            contentId="active"
+          >
             <IonLabel>Active</IonLabel>
           </IonSegmentButton>
-          <IonSegmentButton value="delivered" contentId="delivered">
+          <IonSegmentButton
+            onClick={() => setActiveScreen("delivered")}
+            value="delivered"
+            contentId="delivered"
+          >
             <IonLabel>Delivered</IonLabel>
           </IonSegmentButton>
         </IonSegment>
@@ -617,16 +478,14 @@ const Deliveries: React.FC = () => {
             <IonGrid>
               <IonItem>
                 <h2>Deliveries</h2>
-                {showSyncAddressesBtn && (
-                  <IonButton
-                    onClick={() => syncAddressLonLat()}
-                    expand="block"
-                    shape="round"
-                    slot="end"
-                  >
-                    Sync Addresses
-                  </IonButton>
-                )}
+                <IonButton
+                  onClick={() => syncAddressLonLat()}
+                  expand="block"
+                  shape="round"
+                  slot="end"
+                >
+                  Sync Addresses
+                </IonButton>
                 {showSaveBtn && (
                   <IonButton
                     onClick={() => savedata()}
@@ -636,17 +495,6 @@ const Deliveries: React.FC = () => {
                     slot="end"
                   >
                     Save
-                  </IonButton>
-                )}
-                {showSendToDriverBtn && (
-                  <IonButton
-                    onClick={() => storeFirebaseDeliveries()}
-                    color={"secondary"}
-                    expand="block"
-                    shape="round"
-                    slot="end"
-                  >
-                    Send to Driver
                   </IonButton>
                 )}
               </IonItem>
@@ -826,11 +674,19 @@ const Deliveries: React.FC = () => {
             </IonGrid>
           </IonSegmentContent>
           <IonSegmentContent id="stored" hidden={segment !== "stored"}>
-            <StoredDeliveries />
+            <StoredDeliveries
+              markerPositions={segmentMarkerPositions}
+              setMarkerPositions={setSegmentMarkerPositions}
+              screen={activeScreen}
+            />
           </IonSegmentContent>
           <IonSegmentContent id="active" hidden={segment !== "active"}>
             {/* Your Active content */}
-            <ActiveDeliveries />
+            <ActiveDeliveries
+              markerPositions={segmentMarkerPositions}
+              setMarkerPositions={setSegmentMarkerPositions}
+              screen={activeScreen}
+            />
           </IonSegmentContent>
           <IonSegmentContent id="delivered" hidden={segment !== "delivered"}>
             {/* Your delivered content */}

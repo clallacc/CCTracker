@@ -686,56 +686,6 @@ export const getInFirebaseDelivery = async (): Promise<any[]> => {
 };
 
 // Util function (implement this in your backend or Firebase service) update delivery status
-// export const updateDeliveryStatusInFirebase = async (
-//   docId: string,
-//   dateKey: string,
-//   groupId: string,
-//   deliveryId: string,
-//   newStatus: string
-// ) => {
-//   const docRef = doc(DeliveryCollectionRef, docId);
-//   const docSnap = await getDoc(docRef);
-
-//   if (!docSnap.exists()) {
-//     throw new Error(`Delivery document for date ${dateKey} not found`);
-//   }
-
-//   const data = docSnap.data();
-//   const groups = data.groups || data;
-
-//   console.log("deliveries:", groups);
-//   console.log("deliveryGroup:", groupId);
-
-//   // Find the group index
-//   const groupIndex = groups.findIndex((g: any) => g[0].id === groupId);
-//   if (groupIndex === -1) {
-//     throw new Error(`Group ${groupId} not found in document ${dateKey}`);
-//   }
-
-//   const deliveries = groups[groupIndex].deliveries;
-//   console.log("deliveries:", deliveries);
-
-//   if (!Array.isArray(deliveries)) {
-//     throw new Error(
-//       `Deliveries is not an array in group ${groupId} of document ${dateKey}`
-//     );
-//   }
-
-//   // Find the delivery index inside the group
-//   const deliveryIndex = deliveries.findIndex((d: any) => d.id === deliveryId);
-//   if (deliveryIndex === -1) {
-//     throw new Error(`Delivery ${deliveryId} not found in group ${groupId}`);
-//   }
-
-//   // Update the status locally
-//   deliveries[deliveryIndex].status = newStatus;
-
-//   // Update the document with the modified groups array
-//   await updateDoc(docRef, {
-//     groups: groups,
-//   });
-// };
-
 export const updateDeliveryStatusInFirebase = async (
   docId: string,
   dateKey: string,

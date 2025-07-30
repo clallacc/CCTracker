@@ -13,7 +13,19 @@ import {
   updateDeliveryStatusInFirebase,
 } from "../services/util";
 
-const ActiveDeliveries: React.FC = () => {
+interface MapMarkersProps {
+  markerPositions: { id: string; coordinates: L.LatLngExpression }[];
+  setMarkerPositions: (
+    positions: { id: string; coordinates: L.LatLngExpression }[]
+  ) => void;
+  screen: string;
+}
+
+const ActiveDeliveries: React.FC<MapMarkersProps> = ({
+  markerPositions,
+  setMarkerPositions,
+  screen,
+}) => {
   const [firebaseDeliveries, setFirebaseDeliveries] = useState<any>({});
   const [showStatusAlert, setShowStatusAlert] = useState(false);
   const [selectedDeliveryId, setSelectedDeliveryId] = useState<string | null>(
@@ -36,12 +48,34 @@ const ActiveDeliveries: React.FC = () => {
       }, {});
       setDocumentId(firedeliveries[0].id);
       setFirebaseDeliveries(mergedData);
+      // ...merge and set state...
+      if (screen === "active") {
+        const newMarkerPositions: { id: any; coordinates: any }[] = [];
+        firedeliveries.forEach((item: any) => {
+          // If your data is grouped by date, group, etc., flatten as needed
+          if (item.data) {
+            Object.values(item.data).forEach((groups: any) => {
+              groups.forEach((group: any) => {
+                group.deliveries.forEach((delivery: any) => {
+                  if (delivery.coordinates) {
+                    newMarkerPositions.push({
+                      id: delivery.id,
+                      coordinates: delivery.coordinates.coordinates, // or delivery.coordinates.coordinates
+                    });
+                  }
+                });
+              });
+            });
+          }
+        });
+        setMarkerPositions(newMarkerPositions);
+      }
     }
   };
 
   useEffect(() => {
     getFirebaseDeliveries();
-  }, []);
+  }, [screen]);
 
   const updateStatusClicked = (
     dateKey: string,
@@ -122,7 +156,9 @@ const ActiveDeliveries: React.FC = () => {
         </IonCol>
       </IonRow>
 
-      {dateKeys.length === 0 && <p>No items saved in delivery</p>}
+      {dateKeys.length === 0 && (
+        <p className="ion-paddind">No items saved in delivery</p>
+      )}
 
       {dateKeys.map((dateKey) => {
         const deliveriesForDate = firebaseDeliveries[dateKey];

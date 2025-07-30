@@ -16,7 +16,19 @@ import {
 } from "../services/util";
 import { useAdminOptions } from "../services/adminOptions";
 
-const StoredDeliveries: React.FC = () => {
+interface MapMarkersProps {
+  markerPositions: { id: string; coordinates: L.LatLngExpression }[];
+  setMarkerPositions: (
+    positions: { id: string; coordinates: L.LatLngExpression }[]
+  ) => void;
+  screen: string;
+}
+
+const StoredDeliveries: React.FC<MapMarkersProps> = ({
+  markerPositions,
+  setMarkerPositions,
+  screen,
+}) => {
   const { options } = useAdminOptions();
   const [storedDeliveries, setStoredDeliveries] = useState<any[]>([]);
   const [firebaseDeliveries, setFirebaseDeliveries] = useState<any[]>([]);
@@ -43,12 +55,20 @@ const StoredDeliveries: React.FC = () => {
 
   useEffect(() => {
     getStoredDeliveries();
+
+    // Listen for the custom event - new deliveries stored
+    const handleUpdate = () => getStoredDeliveries();
+    window.addEventListener("deliveries-updated", handleUpdate);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("deliveries-updated", handleUpdate);
+    };
   }, []);
 
   useEffect(() => {
     const getFirebaseDeliveries = async () => {
       const firedeliveries = await getInFirebaseDelivery();
-      console.log("firedeliveries", firedeliveries[0].data);
 
       setFirebaseDeliveries(firedeliveries);
     };
@@ -60,19 +80,47 @@ const StoredDeliveries: React.FC = () => {
       // Check if route already exists in storedDeliveryGroup by id
       const exists = prevGroup.some((item: any) => item.id === route.id);
 
+      let newGroup;
       if (exists) {
         // Remove the route if it exists
-        return prevGroup.filter((item: any) => item.id !== route.id);
+        newGroup = prevGroup.filter((item: any) => item.id !== route.id);
       } else {
         // Add the route if it doesn't exist
-        return [...prevGroup, route];
+        newGroup = [...prevGroup, route];
       }
+
+      // Update marker positions to match newGroup
+      if (screen === "staging") {
+        const newMarkerPositions = newGroup
+          .filter((item: any) => item.coordinates) // ensure coordinates exist
+          .map((item: any) => ({
+            id: item.id,
+            coordinates: item.coordinates.coordinates, // should be [lat, lng] or L.LatLngExpression
+          }));
+
+        setMarkerPositions(newMarkerPositions);
+      }
+
+      return newGroup;
     });
   };
 
   useEffect(() => {
     setShowStoreBtn(deliveries.length > 0);
   }, [deliveries]);
+
+  useEffect(() => {
+    if (deliveries.length > 0) {
+      if (screen === "staging") {
+        const newMarkerPositions = deliveries.map((item: any) => ({
+          id: item.id,
+          coordinates: item.coordinates.coordinates, // should be [lat, lng] or L.LatLngExpression
+        }));
+
+        setMarkerPositions(newMarkerPositions);
+      }
+    }
+  }, [screen]);
 
   // Show the alert when Save is clicked
   const handleSaveClick = () => {
@@ -84,9 +132,10 @@ const StoredDeliveries: React.FC = () => {
     driver: string,
     deliveryDate: string
   ) => {
+    const formattedArea = area.trimStart().replace(/ /g, "-").toLowerCase();
     const deliveryObj = [
       {
-        id: `${deliveries[0].reference_number}-${area}`,
+        id: `${deliveries[0].reference_number}-${formattedArea}`,
         endpoint: options?.aeropost_endpoint,
         delivery_date: deliveryDate,
         area: area,

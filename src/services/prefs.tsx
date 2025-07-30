@@ -22,6 +22,7 @@ export const prefsStoreDeliveries = async (value: any) => {
     key: "cctracker-deliveries",
     value: JSON.stringify(value),
   });
+  window.dispatchEvent(new Event("deliveries-updated"));
 };
 export const prefsGetDeliveries = async () => {
   const { value } = await Preferences.get({

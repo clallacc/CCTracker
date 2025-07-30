@@ -12,13 +12,20 @@ import {
   deliveryCoodinatesStatus,
   getInFirebaseDelivery,
 } from "../services/util";
+import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "../services/firebase";
 
 const DeliveredDeliveries: React.FC = () => {
   const [firebaseDeliveries, setFirebaseDeliveries] = useState<any>({});
 
   useEffect(() => {
-    const getFirebaseDeliveries = async () => {
-      const firedeliveries = await getInFirebaseDelivery();
+    // Listen to the deliveries collection in real-time
+    const unsubscribe = onSnapshot(collection(db, "deliveries"), (snapshot) => {
+      const firedeliveries = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        data: doc.data(),
+      }));
+
       if (firedeliveries.length > 0) {
         const mergedData = firedeliveries.reduce((acc, curr) => {
           return { ...acc, ...curr.data };
@@ -27,14 +34,13 @@ const DeliveredDeliveries: React.FC = () => {
         // Filter each date's delivery groups and their deliveries by status "delivered"
         const filteredData = Object.entries(mergedData).reduce(
           (acc: Record<string, any[]>, [dateKey, deliveryGroups]) => {
-            // deliveryGroups is any[]
             const filteredGroups = (deliveryGroups as any[])
               .map((group) => {
-                const pendingDeliveries = group.deliveries.filter(
+                const deliveredDeliveries = group.deliveries.filter(
                   (delivery: any) => delivery.status === "delivered"
                 );
-                if (pendingDeliveries.length > 0) {
-                  return { ...group, deliveries: pendingDeliveries };
+                if (deliveredDeliveries.length > 0) {
+                  return { ...group, deliveries: deliveredDeliveries };
                 }
                 return null;
               })
@@ -49,10 +55,11 @@ const DeliveredDeliveries: React.FC = () => {
         );
 
         setFirebaseDeliveries(filteredData);
-        console.log("filtered delivered Data", filteredData);
       }
-    };
-    getFirebaseDeliveries();
+    });
+
+    // Cleanup listener on unmount
+    return () => unsubscribe();
   }, []);
 
   const dateKeys = Object.keys(firebaseDeliveries);
@@ -87,7 +94,9 @@ const DeliveredDeliveries: React.FC = () => {
         </IonCol>
       </IonRow>
 
-      {dateKeys.length === 0 && <p>No items saved in delivery</p>}
+      {dateKeys.length === 0 && (
+        <p className="ion-paddind">No items saved in delivery</p>
+      )}
 
       {dateKeys.map((dateKey) => {
         const deliveriesForDate = firebaseDeliveries[dateKey];
