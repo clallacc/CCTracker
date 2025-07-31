@@ -50,7 +50,12 @@ const ActiveDeliveries: React.FC<MapMarkersProps> = ({
       setFirebaseDeliveries(mergedData);
       // ...merge and set state...
       if (screen === "active") {
+        if (!firedeliveries || firedeliveries.length === 0) {
+          setMarkerPositions([]);
+          return;
+        }
         const newMarkerPositions: { id: any; coordinates: any }[] = [];
+
         firedeliveries.forEach((item: any) => {
           // If your data is grouped by date, group, etc., flatten as needed
           if (item.data) {

@@ -112,6 +112,10 @@ const StoredDeliveries: React.FC<MapMarkersProps> = ({
   useEffect(() => {
     if (deliveries.length > 0) {
       if (screen === "staging") {
+        if (!deliveries || deliveries.length === 0) {
+          setMarkerPositions([]);
+          return;
+        }
         const newMarkerPositions = deliveries.map((item: any) => ({
           id: item.id,
           coordinates: item.coordinates.coordinates, // should be [lat, lng] or L.LatLngExpression
@@ -133,6 +137,7 @@ const StoredDeliveries: React.FC<MapMarkersProps> = ({
     deliveryDate: string
   ) => {
     const formattedArea = area.trimStart().replace(/ /g, "-").toLowerCase();
+    const createdDate = new Date().toISOString();
     const deliveryObj = [
       {
         id: `${deliveries[0].reference_number}-${formattedArea}`,
@@ -141,6 +146,7 @@ const StoredDeliveries: React.FC<MapMarkersProps> = ({
         area: area,
         driver: driver,
         deliveries,
+        createdAt: createdDate,
       },
     ];
     await prefsStoreDeliveries(deliveryObj);
@@ -151,7 +157,6 @@ const StoredDeliveries: React.FC<MapMarkersProps> = ({
   };
 
   const submitRoute = async () => {
-    console.log({ [deliveryDate]: storedDeliveries });
     try {
       await createDeliveryInFirebase({
         [deliveryDate || storedDeliveries[0].delivery_date]: storedDeliveries,

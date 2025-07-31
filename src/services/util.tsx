@@ -20,6 +20,7 @@ import {
   doc,
   query,
   where,
+  orderBy,
 } from "firebase/firestore";
 import { IonIcon } from "@ionic/react";
 import { star, starHalf, starOutline } from "ionicons/icons";
@@ -641,22 +642,54 @@ export const updateDeliveryInFirebase = async (deliveryId: any) => {
   }
 };
 
+// export const getDeliveryInFirebase = async (): Promise<Delivery[]> => {
+//   try {
+//     // Get the delivery documents from Firestore
+//     const deliveryDocsRef = await getDocs(DeliveryCollectionRef);
+
+//     // Map the documents to the Delivery type
+//     const filteredData: Delivery[] = deliveryDocsRef.docs.map((doc) => {
+//       const data = doc.data();
+//       return {
+//         deliveryid: data.deliveryid, // Ensure this matches your Firestore structure
+//         email: data.email,
+//         end: data.end,
+//         start: data.start,
+//         startDateTime: data.startDateTime,
+//         status: data.status,
+//         id: doc.id, // You can keep this if you need the Firestore document ID
+//       };
+//     });
+
+//     return filteredData;
+//   } catch (error) {
+//     console.error("Error fetching deliveries:", error);
+//     return [];
+//   }
+// };
+
 export const getDeliveryInFirebase = async (): Promise<Delivery[]> => {
   try {
-    // Get the delivery documents from Firestore
-    const deliveryDocsRef = await getDocs(DeliveryCollectionRef);
+    // Create a query ordered by startDateTime descending (latest first)
+    const deliveriesQuery = query(
+      DeliveryCollectionRef,
+      orderBy("createdAt", "desc")
+    );
+
+    // Get the documents using the query
+    const deliveryDocsRef = await getDocs(deliveriesQuery);
 
     // Map the documents to the Delivery type
     const filteredData: Delivery[] = deliveryDocsRef.docs.map((doc) => {
       const data = doc.data();
       return {
-        deliveryid: data.deliveryid, // Ensure this matches your Firestore structure
+        deliveryid: data.deliveryid,
         email: data.email,
         end: data.end,
         start: data.start,
         startDateTime: data.startDateTime,
         status: data.status,
-        id: doc.id, // You can keep this if you need the Firestore document ID
+        id: doc.id,
       };
     });
 

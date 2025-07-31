@@ -33,6 +33,9 @@ import car01 from "../assets/pin01.png";
 import car02 from "../assets/pin02.png";
 import car03 from "../assets/pin03.png";
 import car04 from "../assets/pin04.png";
+import delivery01 from "../assets/delivery01.png";
+import delivery02 from "../assets/delivery02.png";
+import delivery03 from "../assets/delivery03.png";
 import {
   prefsGetDeliveries,
   prefsRemoveDeliveries,
@@ -67,6 +70,42 @@ const carIcons = [
 
 const carMarker = new L.Icon({
   iconUrl: car04,
+  iconSize: [30, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
+});
+const carMarker01 = new L.Icon({
+  iconUrl: car01,
+  iconSize: [30, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
+});
+const carMarker02 = new L.Icon({
+  iconUrl: car02,
+  iconSize: [30, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
+});
+const carMarker03 = new L.Icon({
+  iconUrl: car03,
+  iconSize: [30, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
+});
+const deliveryMarker01 = new L.Icon({
+  iconUrl: delivery01,
+  iconSize: [30, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
+});
+const deliveryMarker02 = new L.Icon({
+  iconUrl: delivery02,
+  iconSize: [30, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
+});
+const deliveryMarker03 = new L.Icon({
+  iconUrl: delivery03,
   iconSize: [30, 40],
   iconAnchor: [20, 40],
   popupAnchor: [0, -40],
@@ -131,6 +170,13 @@ const Deliveries: React.FC = () => {
   const [adminNotice, setAdminNotice] = useState<string>("");
   const [segment, setSegment] = useState("aeropost");
   const [activeScreen, setActiveScreen] = useState("");
+
+  const getIcon = () => {
+    if (activeScreen === "staging") return deliveryMarker03;
+    if (activeScreen === "active") return deliveryMarker02;
+    if (activeScreen === "delivered") return deliveryMarker01;
+    return carMarker;
+  };
 
   ///// GET AEROPOST DELIVERIES
   useEffect(() => {
@@ -359,7 +405,11 @@ const Deliveries: React.FC = () => {
     <>
       <div>
         <MapContainer
-          center={position}
+          center={
+            segmentMarkerPositions && segmentMarkerPositions.length > 0
+              ? segmentMarkerPositions[0].coordinates
+              : position
+          }
           zoom={12}
           scrollWheelZoom={false}
           style={{ width: "auto", height: "50vh" }}
@@ -394,7 +444,7 @@ const Deliveries: React.FC = () => {
               <Marker
                 key={segmentMarker.id}
                 position={segmentMarker.coordinates}
-                icon={randomIcon} // your icon here
+                icon={getIcon()} // your icon here
               />
             ))}
             {/* Only one marker, draggable */}
@@ -690,7 +740,11 @@ const Deliveries: React.FC = () => {
           </IonSegmentContent>
           <IonSegmentContent id="delivered" hidden={segment !== "delivered"}>
             {/* Your delivered content */}
-            <DeliveredDeliveries />
+            <DeliveredDeliveries
+              markerPositions={segmentMarkerPositions}
+              setMarkerPositions={setSegmentMarkerPositions}
+              screen={activeScreen}
+            />
           </IonSegmentContent>
         </IonSegmentView>
         {adminNotice && <p>{adminNotice}</p>}

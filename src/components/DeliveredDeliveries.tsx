@@ -15,8 +15,59 @@ import {
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../services/firebase";
 
-const DeliveredDeliveries: React.FC = () => {
+interface MapMarkersProps {
+  markerPositions: { id: string; coordinates: L.LatLngExpression }[];
+  setMarkerPositions: (
+    positions: { id: string; coordinates: L.LatLngExpression }[]
+  ) => void;
+  screen: string;
+}
+
+const DeliveredDeliveries: React.FC<MapMarkersProps> = ({
+  markerPositions,
+  setMarkerPositions,
+  screen,
+}) => {
   const [firebaseDeliveries, setFirebaseDeliveries] = useState<any>({});
+
+  const setDeliveredMarkers = (deliveries: any[]) => {
+    if (screen === "delivered") {
+      if (!deliveries || deliveries.length === 0) {
+        setMarkerPositions([]);
+        return;
+      }
+      const newMarkerPositions: { id: any; coordinates: any }[] = [];
+
+      deliveries.forEach((dateObj: any) => {
+        // Each dateObj is like { "29-07-25": [ ...groups ] }
+        Object.values(dateObj).forEach((groups: any) => {
+          // groups is an array of delivery groups
+          groups.forEach((group: any) => {
+            if (group.deliveries && Array.isArray(group.deliveries)) {
+              group.deliveries.forEach((delivery: any) => {
+                if (
+                  delivery.coordinates &&
+                  delivery.coordinates.coordinates &&
+                  typeof delivery.coordinates.coordinates.lat === "number" &&
+                  typeof delivery.coordinates.coordinates.lng === "number"
+                ) {
+                  newMarkerPositions.push({
+                    id: delivery.id,
+                    coordinates: [
+                      delivery.coordinates.coordinates.lat,
+                      delivery.coordinates.coordinates.lng,
+                    ],
+                  });
+                }
+              });
+            }
+          });
+        });
+      });
+
+      setMarkerPositions(newMarkerPositions);
+    }
+  };
 
   useEffect(() => {
     // Listen to the deliveries collection in real-time
@@ -55,12 +106,13 @@ const DeliveredDeliveries: React.FC = () => {
         );
 
         setFirebaseDeliveries(filteredData);
+        setDeliveredMarkers([filteredData]);
       }
     });
 
     // Cleanup listener on unmount
     return () => unsubscribe();
-  }, []);
+  }, [screen]);
 
   const dateKeys = Object.keys(firebaseDeliveries);
 

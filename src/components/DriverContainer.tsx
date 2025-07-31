@@ -164,9 +164,14 @@ const DriverContainer: React.FC<ContainerProps> = ({
                       interface="action-sheet"
                       placeholder="Select delivery area..."
                       onIonChange={(e) => selectedCity(e.detail.value)}
+                      style={{ width: "100%" }}
                     >
                       {cityList.map((city) => (
-                        <IonSelectOption key={city.city} value={city.city}>
+                        <IonSelectOption
+                          key={city.city}
+                          value={city.city}
+                          style={{ width: "100%" }}
+                        >
                           {city.city}
                         </IonSelectOption>
                       ))}
