@@ -77,8 +77,8 @@ const appDeliveryPages: AppPage[] = [
     mdIcon: archiveSharp,
   },
   {
-    title: "Contact Client",
-    url: "contacts",
+    title: "Delivered",
+    url: "/Driver-delivered",
     iosIcon: heartOutline,
     mdIcon: heartSharp,
   },

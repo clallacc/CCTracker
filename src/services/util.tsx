@@ -1,5 +1,6 @@
 import {
   prefsGetAdminOptions,
+  prefsGetDelivered,
   prefsGetUserSettings,
   prefsRemoveUserSettings,
   prefsStoreUserSettings,
@@ -73,6 +74,16 @@ export const updateUserSettings = async (userSettings: any) => {
   }
 };
 
+export const getDeliveredByDriver = async () => {
+  try {
+    const delivered = await prefsGetDelivered();
+    return delivered;
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+};
+
 export const handleRoute = (
   route: string,
   appContext: Record<string, any>,
@@ -101,6 +112,10 @@ export const handleRoute = (
     case "/Driver-deliveries":
       setAppContext({ ...appContext, page: "driver-deliveries" });
       console.log("page", "driver-deliveries");
+      break;
+    case "/Driver-delivered":
+      setAppContext({ ...appContext, page: "driver-delivered" });
+      console.log("page", "driver-delivered");
       break;
     default:
       console.log("Unknown route:", route);
@@ -350,6 +365,7 @@ export const fetchLatLon = async (
 // Firebase calls
 const DriverCollectionRef = collection(db, "drivers");
 const DeliveryCollectionRef = collection(db, "deliveries");
+const DeliveredCollectionRef = collection(db, "delivered");
 
 export const getDriversFormFirebase = async () => {
   try {
@@ -642,6 +658,40 @@ export const updateDeliveryInFirebase = async (deliveryId: any) => {
   }
 };
 
+export const createDeliveredInFirebase = async (data: any) => {
+  try {
+    // Get the driver's current location
+    const deliveredDocRef = await addDoc(DeliveredCollectionRef, data);
+
+    const deliveredDataWithId = {
+      id: deliveredDocRef.id,
+      ...data, // Spread the original data to include it in the returned object
+    };
+
+    return deliveredDataWithId;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const updateDeliveredInFirebase = async (
+  deliveryId: any,
+  coordinates: any
+) => {
+  try {
+    // Get the driver's current location
+    const deliveredDocRef = doc(DeliveredCollectionRef, deliveryId);
+    // Update the driver's location in Firestore
+    await updateDoc(deliveredDocRef, {
+      status: "delivered",
+      deloveredDateTime: new Date().toISOString(),
+      coordinates: coordinates,
+    });
+  } catch (error) {
+    console.error("Error updating driver location:", error);
+  }
+};
+
 // export const getDeliveryInFirebase = async (): Promise<Delivery[]> => {
 //   try {
 //     // Get the delivery documents from Firestore
@@ -704,6 +754,31 @@ export const getInFirebaseDelivery = async (): Promise<any[]> => {
   try {
     // Get the delivery documents from Firestore
     const deliveryDocsRef = await getDocs(DeliveryCollectionRef);
+
+    // Map the documents to the Delivery type
+    const filteredData: any[] = deliveryDocsRef.docs.map((doc) => {
+      const data = doc.data();
+      // data.docid = doc.id;
+      return { id: doc.id, data: data };
+    });
+
+    return filteredData;
+  } catch (error) {
+    console.error("Error fetching deliveries:", error);
+    return [];
+  }
+};
+
+export const getDriverFirebaseDelivery = async (): Promise<any[]> => {
+  try {
+    // Create a query ordered by startDateTime descending (latest first)
+    const deliveriesQuery = query(
+      DeliveryCollectionRef,
+      orderBy("createdAt", "desc")
+    );
+
+    // Get the delivery documents from Firestore
+    const deliveryDocsRef = await getDocs(deliveriesQuery);
 
     // Map the documents to the Delivery type
     const filteredData: any[] = deliveryDocsRef.docs.map((doc) => {

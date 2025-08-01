@@ -47,3 +47,15 @@ export const prefsGetAdminOptions = async () => {
   });
   return value ? JSON.parse(value) : [];
 };
+export const prefsStoreDelivered = async (value: any) => {
+  await Preferences.set({
+    key: "cctracker-delivered",
+    value: JSON.stringify(value),
+  });
+};
+export const prefsGetDelivered = async () => {
+  const { value } = await Preferences.get({
+    key: "cctracker-delivered",
+  });
+  return value ? JSON.parse(value) : [];
+};

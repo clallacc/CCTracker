@@ -24,10 +24,14 @@ import mappin from "../assets/mappin.png";
 import {
   calculateDistance,
   checkEnvironment,
+  createDeliveredInFirebase,
   createDeliveryInFirebase,
+  getDeliveredByDriver,
   getDriversFormFirebase,
   refreshView,
+  updateDeliveredInFirebase,
   updateDeliveryInFirebase,
+  updateDeliveryStatusInFirebase,
 } from "../services/util";
 import {
   APIProvider,
@@ -43,11 +47,13 @@ import Directions from "../components/Directions";
 import { useAppContext } from "../services/appContext";
 import { auth } from "../services/firebase";
 import Intro from "../components/Intro";
-import { home, options, pin, refresh } from "ionicons/icons";
+import { home, navigate, options, pin, refresh } from "ionicons/icons";
 import Deliveries from "../components/Deliveries";
 import Options from "../components/Options";
 import TrackDriver from "../components/TrackDriver";
 import EagleView from "../components/EagleView";
+import DriverDelivered from "../components/DriverDelivered";
+import { prefsStoreDelivered } from "../services/prefs";
 // import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 
 const Page: React.FC = () => {
@@ -72,6 +78,13 @@ const Page: React.FC = () => {
   const [showOptions, setShowOptions] = useState(false);
   const [driverContainerModelOpen, setDriverContainerModelOpen] =
     useState(false);
+  const [driverDeliveredModelOpen, setDriverDeliveredModelOpen] =
+    useState(false);
+  const [deliveryUpdateProps, setDeliveryUpdateProps] = useState<{
+    documentId: string;
+    dateKey: string;
+    groupId: string;
+  }>({ documentId: "", dateKey: "", groupId: "" });
 
   // console.log("loginStatus", auth?.currentUser?.email);
   // const initializeAppAdmin = async () => {
@@ -105,6 +118,11 @@ const Page: React.FC = () => {
       setDriverContainerModelOpen(true);
     } else {
       setDriverContainerModelOpen(false);
+    }
+    if (appState.page === "driver-delivered") {
+      setDriverDeliveredModelOpen(true);
+    } else {
+      setDriverDeliveredModelOpen(false);
     }
     console.log("page del", appState.page);
   }, [appState]);
@@ -152,7 +170,7 @@ const Page: React.FC = () => {
                 );
 
                 // Check if the distance is below the threshold (e.g., 50 meters)
-                if (distance <= 50) {
+                if (distance <= 20) {
                   presentAlert({
                     header: "Delivery address reached",
                     subHeader:
@@ -236,7 +254,6 @@ const Page: React.FC = () => {
   const handlePointerUp = (event: any) => {
     event.stopPropagation();
   };
-
   // Load map
 
   const startRoute = async () => {
@@ -246,11 +263,18 @@ const Page: React.FC = () => {
       start: leg.start_address,
       end: leg.end_address,
       startDateTime: new Date().toISOString(),
-      deliveredDateTime: "",
+      deliveryDateTime: null,
       status: "in-route",
     };
 
-    await createDeliveryInFirebase(data).then((data) => {
+    await prefsStoreDelivered(data).then(async () => {
+      await updateDeliveryStatusInFirebase(
+        deliveryUpdateProps.documentId,
+        deliveryUpdateProps.dateKey,
+        deliveryUpdateProps.groupId,
+        deliveryId,
+        "in-route"
+      );
       setRouteStart(true);
       window.open(
         `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
@@ -264,7 +288,20 @@ const Page: React.FC = () => {
   };
 
   const endRoute = async () => {
-    await updateDeliveryInFirebase(deliveryId);
+    // await updateDeliveredInFirebase(deliveryId, position);
+    const delivered = await getDeliveredByDriver();
+    delivered.deliveryDateTime = new Date().toISOString();
+    delivered.status = "delivered";
+    await createDeliveredInFirebase(delivered).then(async () => {
+      await updateDeliveryStatusInFirebase(
+        deliveryUpdateProps.documentId,
+        deliveryUpdateProps.dateKey,
+        deliveryUpdateProps.groupId,
+        deliveryId,
+        "delivered"
+      );
+      alert("Delivery updated");
+    });
     setRouteStart(false);
   };
 
@@ -301,19 +338,28 @@ const Page: React.FC = () => {
 
             <IonContent className="ion-margin-top ion-padding-top" fullscreen>
               {appState.isLoggedIn && deviceIsMobile ? (
-                appState.page === "driver-deliveries" && (
-                  <DriverContainer
-                    name={name}
-                    position={position}
-                    driverSection={driverSection}
-                    setDriverSection={setDriverSection}
-                    endRoute={deliveryEndRoute}
-                    setEndRoute={setDeliveryEndRoute}
-                    setDeliveryId={setDeliveryId}
-                    isModalOpen={driverContainerModelOpen}
-                    setIsModalOpen={setDriverContainerModelOpen}
-                  />
-                )
+                <>
+                  {appState.page === "driver-deliveries" && (
+                    <DriverContainer
+                      name={name}
+                      position={position}
+                      driverSection={driverSection}
+                      setDriverSection={setDriverSection}
+                      endRoute={deliveryEndRoute}
+                      setEndRoute={setDeliveryEndRoute}
+                      setDeliveryId={setDeliveryId}
+                      isModalOpen={driverContainerModelOpen}
+                      setIsModalOpen={setDriverContainerModelOpen}
+                      setDeliveryUpdateParams={setDeliveryUpdateProps}
+                    />
+                  )}
+                  {appState.page === "driver-delivered" && (
+                    <DriverDelivered
+                      isModalOpen={driverDeliveredModelOpen}
+                      setIsModalOpen={setDriverDeliveredModelOpen}
+                    />
+                  )}
+                </>
               ) : (
                 // <AdminContainer
                 //   name={name}
@@ -373,6 +419,10 @@ const Page: React.FC = () => {
                             endRoute={deliveryEndRoute}
                             routeLeg={leg}
                             setRouteLeg={setLeg}
+                            driverContainerModelOpen={driverContainerModelOpen}
+                            setDriverContainerModelOpen={
+                              setDriverContainerModelOpen
+                            }
                           />
                         )}
                       </Map>
@@ -393,31 +443,34 @@ const Page: React.FC = () => {
             </IonContent>
             {deviceIsMobile && (
               <IonFooter>
-                <IonToolbar className="ion-padding-start">
-                  <IonButtons slot="end">
-                    {!routeStart && (
-                      <IonButton
-                        size="large"
-                        shape="round"
-                        expand="block"
-                        color="primary"
-                        onClick={startRoute}
-                      >
-                        Start
-                      </IonButton>
-                    )}
-                    {routeStart && (
-                      <IonButton
-                        size="large"
-                        shape="round"
-                        expand="block"
-                        color="primary"
-                        onClick={endRoute}
-                      >
-                        End
-                      </IonButton>
-                    )}
-                  </IonButtons>
+                <IonToolbar>
+                  {leg.end_address && (
+                    <IonButtons slot="end">
+                      {!routeStart && (
+                        <IonButton
+                          size="large"
+                          shape="round"
+                          expand="block"
+                          color="primary"
+                          onClick={startRoute}
+                        >
+                          Start
+                        </IonButton>
+                      )}
+                      {routeStart && (
+                        <IonButton
+                          size="large"
+                          shape="round"
+                          expand="block"
+                          color="primary"
+                          onClick={endRoute}
+                        >
+                          End
+                        </IonButton>
+                      )}
+                    </IonButtons>
+                  )}
+                  <IonIcon icon={navigate} slot="start"></IonIcon>
                   <IonLabel>
                     <h4>
                       {leg.end_address

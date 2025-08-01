@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./DriverContainer.css";
 import {
+  IonBadge,
   IonContent,
   IonHeader,
   IonImg,
@@ -15,15 +16,7 @@ import {
   IonToolbar,
 } from "@ionic/react";
 import { useAppContext } from "../services/appContext";
-import { getAeropostOrders } from "../services/httprequests";
-import {
-  fetchLatLon,
-  getDeliveryInFirebase,
-  getInFirebaseDelivery,
-} from "../services/util";
-import { prefsStoreDeliveries } from "../services/prefs";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import { OpenStreetMapProvider } from "leaflet-geosearch";
+import { calculateDistance, getInFirebaseDelivery } from "../services/util";
 import { peopleCircleOutline } from "ionicons/icons";
 
 interface ContainerProps {
@@ -36,6 +29,20 @@ interface ContainerProps {
   setDeliveryId: (deliveryId: string) => void;
   isModalOpen: boolean;
   setIsModalOpen: (isModalOpen: boolean) => void;
+  setDeliveryUpdateParams: (props: {
+    documentId: string;
+    dateKey: string;
+    groupId: string;
+  }) => void;
+}
+
+interface DeliveryGroup {
+  delivery_date: string;
+  area: string;
+  driver: string;
+  deliveries: any[]; // or more specific type
+  id: string;
+  // other fields...
 }
 
 const DriverContainer: React.FC<ContainerProps> = ({
@@ -47,6 +54,7 @@ const DriverContainer: React.FC<ContainerProps> = ({
   setDeliveryId,
   isModalOpen,
   setIsModalOpen,
+  setDeliveryUpdateParams,
 }) => {
   const { appState, setAppState } = useAppContext();
   const [deliveries, setDeliveries] = useState<any[]>([]);
@@ -54,70 +62,110 @@ const DriverContainer: React.FC<ContainerProps> = ({
   const [cityList, setCityList] = useState<any[]>([]);
 
   const [firebaseDeliveries, setFirebaseDeliveries] = useState<any>({});
+  const [filteredFirebaseDeliveries, setFilteredFirebaseDeliveries] =
+    useState<any>({});
+
+  // useEffect(() => {
+  //   const getFirebaseDeliveries = async () => {
+  //     try {
+  //       const firedeliveries = await getInFirebaseDelivery();
+  //       if (firedeliveries.length > 0) {
+  //         const mergedData = firedeliveries.reduce((acc, curr) => {
+  //           // Add id property to curr.data
+  //           const dataWithId = { ...curr.data, documentId: curr.id };
+  //           console.log("curr", dataWithId);
+  //           return { ...acc, ...dataWithId };
+  //           // return { ...acc, ...curr.data };
+  //         }, {});
+
+  //         // Filter each date's delivery groups and their deliveries by status "pending"
+  //         const filteredData = Object.entries(mergedData).reduce(
+  //           (acc: Record<string, any[]>, [dateKey, deliveryGroups]) => {
+  //             // deliveryGroups is any[]
+  //             const filteredGroups = (deliveryGroups as any[])
+  //               .map((group) => {
+  //                 const pendingDeliveries = group.deliveries.filter(
+  //                   (delivery: any) => delivery.status === "pending"
+  //                 );
+  //                 if (pendingDeliveries.length > 0) {
+  //                   return { ...group, deliveries: pendingDeliveries };
+  //                 }
+  //                 return null;
+  //               })
+  //               .filter(Boolean);
+
+  //             if (filteredGroups.length > 0) {
+  //               acc[dateKey] = filteredGroups;
+  //             }
+  //             return acc;
+  //           },
+  //           {} as Record<string, any[]>
+  //         );
+
+  //         setFirebaseDeliveries(filteredData);
+  //         setFilteredFirebaseDeliveries(filteredData);
+  //         console.log("filteredData", filteredData);
+  //       }
+  //     } catch (error) {
+  //       console.error(error);
+  //     }
+  //   };
+  //   getFirebaseDeliveries();
+  // }, []);
 
   useEffect(() => {
     const getFirebaseDeliveries = async () => {
-      const firedeliveries = await getInFirebaseDelivery();
-      if (firedeliveries.length > 0) {
-        const mergedData = firedeliveries.reduce((acc, curr) => {
-          return { ...acc, ...curr.data };
-        }, {});
-
-        // Filter each date's delivery groups and their deliveries by status "pending"
-        const filteredData = Object.entries(mergedData).reduce(
-          (acc: Record<string, any[]>, [dateKey, deliveryGroups]) => {
-            // deliveryGroups is any[]
-            const filteredGroups = (deliveryGroups as any[])
-              .map((group) => {
-                const pendingDeliveries = group.deliveries.filter(
-                  (delivery: any) => delivery.status === "pending"
-                );
-                if (pendingDeliveries.length > 0) {
-                  return { ...group, deliveries: pendingDeliveries };
-                }
-                return null;
-              })
-              .filter(Boolean);
-
-            if (filteredGroups.length > 0) {
-              acc[dateKey] = filteredGroups;
-            }
+      try {
+        const firedeliveries = await getInFirebaseDelivery();
+        if (firedeliveries.length > 0) {
+          // Build mergedData with documentId inside each delivery group
+          const mergedData = firedeliveries.reduce((acc, curr) => {
+            // For each dateKey in curr.data
+            Object.entries(curr.data).forEach(([dateKey, groups]) => {
+              // Add documentId to each group
+              const groupsWithId = (groups as any[]).map((group) => ({
+                ...group,
+                documentId: curr.id,
+              }));
+              // Assign to accumulator
+              acc[dateKey] = (acc[dateKey] || []).concat(groupsWithId);
+            });
             return acc;
-          },
-          {} as Record<string, any[]>
-        );
+          }, {} as Record<string, any[]>);
 
-        setFirebaseDeliveries(filteredData);
-        console.log("filteredData", filteredData);
+          // Filter each date's delivery groups and their deliveries by status "pending"
+          const filteredData = Object.entries(mergedData).reduce(
+            (acc: Record<string, any[]>, [dateKey, deliveryGroups]) => {
+              const filteredGroups = (deliveryGroups as any[])
+                .map((group) => {
+                  const pendingDeliveries = group.deliveries.filter(
+                    (delivery: any) => delivery.status === "pending"
+                  );
+                  if (pendingDeliveries.length > 0) {
+                    return { ...group, deliveries: pendingDeliveries };
+                  }
+                  return null;
+                })
+                .filter(Boolean);
+
+              if (filteredGroups.length > 0) {
+                acc[dateKey] = filteredGroups;
+              }
+              return acc;
+            },
+            {} as Record<string, any[]>
+          );
+
+          setFirebaseDeliveries(filteredData);
+          setFilteredFirebaseDeliveries(filteredData);
+          console.log("filteredData", filteredData);
+        }
+      } catch (error) {
+        console.error(error);
       }
     };
     getFirebaseDeliveries();
   }, []);
-
-  const provider = new OpenStreetMapProvider();
-
-  // useEffect(() => {
-  //   const aeropostOrdersGet = async () => {
-  //     try {
-  //       // Fetch data from both sources
-  //       const aeropostOrders = await getAeropostOrders("2025-06-26");
-  //       setAeropostDeliveries(aeropostOrders);
-  //       const citiesCategory = Array.from(
-  //         new Set(aeropostOrders.map((item: any) => item.city))
-  //       ).map((city) => ({ city }));
-  //       setCityList(citiesCategory);
-
-  //       const results = await provider.search({
-  //         query:
-  //           "2261, Mountain Road, Hildegarde, Moncton Parish, Moncton, Westmorland County, New Brunswick, E1G 1B4, Canada",
-  //       });
-  //     } catch (error) {
-  //       console.error("Error fetching or processing deliveries:", error);
-  //     }
-  //   };
-
-  //   aeropostOrdersGet();
-  // }, []);
 
   const selectedCity = (city: string) => {
     const arimaOrders = aeropostDeliveries.filter(
@@ -132,9 +180,51 @@ const DriverContainer: React.FC<ContainerProps> = ({
   };
 
   const formatToSentenceCase = (str: any) => {
-    if (!str) return ""; // Handle null or undefined
+    if (!str) return "";
+    // Handle null or undefined
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   };
+
+  const filterDeliveries = (selectedValue: string) => {
+    if (selectedValue === "") {
+      setFilteredFirebaseDeliveries(firebaseDeliveries);
+      return;
+    }
+    console.log("Selected delivery group:", selectedValue);
+
+    const [delivery_date, area, driver] = selectedValue.split(" - ");
+
+    // Type assertion for Object.entries
+    const filteredGroups = Object.entries(
+      firebaseDeliveries as Record<string, DeliveryGroup[]>
+    ).reduce(
+      (acc: Record<string, DeliveryGroup[]>, [dateKey, deliveryGroups]) => {
+        if (dateKey === delivery_date) {
+          const matchedGroups = deliveryGroups.filter(
+            (group) => group.area === area && group.driver === driver
+          );
+          if (matchedGroups.length > 0) {
+            acc[dateKey] = matchedGroups;
+          }
+        }
+        return acc;
+      },
+      {}
+    );
+
+    console.log("Filtered groups:", filteredGroups);
+    setFilteredFirebaseDeliveries(filteredGroups);
+  };
+
+  // const setDeliveryUpdateParams = (
+  //   documentId: string,
+  //   dateKey: string,
+  //   groupId: string
+  // ) => {
+  //   console.log("documentId", documentId);
+  //   console.log("dateKey", dateKey);
+  //   console.log("groupId", groupId);
+  // };
 
   return (
     <>
@@ -163,52 +253,136 @@ const DriverContainer: React.FC<ContainerProps> = ({
                       aria-label="city"
                       interface="action-sheet"
                       placeholder="Select delivery area..."
-                      onIonChange={(e) => selectedCity(e.detail.value)}
+                      onIonChange={(e) => filterDeliveries(e.detail.value)}
                       style={{ width: "100%" }}
                     >
-                      {cityList.map((city) => (
-                        <IonSelectOption
-                          key={city.city}
-                          value={city.city}
-                          style={{ width: "100%" }}
-                        >
-                          {city.city}
-                        </IonSelectOption>
-                      ))}
+                      <IonSelectOption value={""} style={{ width: "100%" }}>
+                        All
+                      </IonSelectOption>
+                      {Object.keys(firebaseDeliveries).map((dateKey) =>
+                        firebaseDeliveries[dateKey].map(
+                          (deliveryGroup: any) => {
+                            const optionValue = `${deliveryGroup.delivery_date} - ${deliveryGroup.area} - ${deliveryGroup.driver}`;
+                            return (
+                              <IonSelectOption
+                                key={deliveryGroup.id}
+                                value={optionValue}
+                                style={{ width: "100%" }}
+                              >
+                                {optionValue}
+                              </IonSelectOption>
+                            );
+                          }
+                        )
+                      )}
                     </IonSelect>
                   </IonItem>
                 </IonList>
 
                 <IonList className="delivery-list--item">
-                  {Object.keys(firebaseDeliveries).map((dateKey) =>
-                    firebaseDeliveries[dateKey].map((deliveryGroup: any) =>
-                      deliveryGroup.deliveries.map((delivery: any) => (
-                        <IonItem
-                          key={delivery.id}
-                          onClick={() => {
-                            setDriverSection(1);
-                            setEndRoute(
-                              `${delivery?.address}, ${delivery?.city} ${delivery?.country_code}`
-                            );
-                            setDeliveryId(delivery.id);
-                            setIsModalOpen(false);
-                          }}
-                        >
-                          <IonThumbnail slot="start">
-                            <IonImg src={peopleCircleOutline}></IonImg>
-                          </IonThumbnail>
-                          <IonLabel>
-                            <h2>
-                              {formatToSentenceCase(`${delivery?.first_name}`)}{" "}
-                              {formatToSentenceCase(`${delivery?.last_name}`)}
-                            </h2>
-                            <p>
-                              {delivery?.address}
-                              {delivery?.city ? `, ${delivery?.city}` : ""}
-                            </p>
-                          </IonLabel>
-                        </IonItem>
-                      ))
+                  {Object.keys(filteredFirebaseDeliveries).map((dateKey) =>
+                    filteredFirebaseDeliveries[dateKey].map(
+                      (deliveryGroup: any) => {
+                        // Sort deliveries by distance to driver position
+                        const sortedDeliveries = [
+                          ...deliveryGroup.deliveries,
+                        ].sort((a: any, b: any) => {
+                          // Defensive: ensure coordinates exist
+                          const aCoords = a.coordinates?.coordinates;
+                          const bCoords = b.coordinates?.coordinates;
+                          if (!aCoords || !bCoords) return 0;
+                          const aDist = calculateDistance(
+                            position.lat,
+                            position.lng,
+                            aCoords.lat,
+                            aCoords.lng
+                          );
+                          const bDist = calculateDistance(
+                            position.lat,
+                            position.lng,
+                            bCoords.lat,
+                            bCoords.lng
+                          );
+                          return aDist - bDist;
+                        });
+
+                        return (
+                          <div key={deliveryGroup.id}>
+                            {/* Group header */}
+                            <IonItem color="light">
+                              <IonLabel>
+                                <strong>
+                                  {deliveryGroup.delivery_date} -{" "}
+                                  {deliveryGroup.area} - {deliveryGroup.driver}
+                                </strong>
+                              </IonLabel>
+                            </IonItem>
+                            {/* Deliveries in this group */}
+                            {sortedDeliveries.map((delivery: any) => (
+                              <IonItem
+                                key={delivery.id}
+                                onClick={() => {
+                                  setDriverSection(1);
+                                  setEndRoute(
+                                    `${delivery?.address}, ${delivery?.city} ${delivery?.country_code}`
+                                  );
+                                  setDeliveryId(delivery.id);
+                                  setIsModalOpen(false);
+                                  setDeliveryUpdateParams({
+                                    documentId: deliveryGroup.documentId,
+                                    dateKey: dateKey,
+                                    groupId: deliveryGroup.id,
+                                  });
+                                  // setDeliveryUpdateParams(
+                                  //   deliveryGroup.documentId,
+                                  //   dateKey,
+                                  //   deliveryGroup.id
+                                  // );
+                                }}
+                              >
+                                <IonThumbnail slot="start">
+                                  <IonImg src={peopleCircleOutline}></IonImg>
+                                </IonThumbnail>
+                                <IonLabel>
+                                  <h2>
+                                    {formatToSentenceCase(
+                                      `${delivery?.first_name}`
+                                    )}{" "}
+                                    {formatToSentenceCase(
+                                      `${delivery?.last_name}`
+                                    )}
+                                  </h2>
+                                  <p>
+                                    {delivery?.address}
+                                    {delivery?.city
+                                      ? `, ${delivery?.city}`
+                                      : ""}
+                                  </p>
+                                  {/* Optionally show distance */}
+                                  {delivery.coordinates?.coordinates && (
+                                    <IonBadge color={"light"} slot="end">
+                                      <p
+                                        style={{
+                                          fontSize: "0.8em",
+                                          color: "#888",
+                                        }}
+                                      >
+                                        {calculateDistance(
+                                          position.lat,
+                                          position.lng,
+                                          delivery.coordinates.coordinates.lat,
+                                          delivery.coordinates.coordinates.lng
+                                        ).toFixed(2)}{" "}
+                                        km away
+                                      </p>
+                                    </IonBadge>
+                                  )}
+                                </IonLabel>
+                              </IonItem>
+                            ))}
+                          </div>
+                        );
+                      }
                     )
                   )}
                 </IonList>

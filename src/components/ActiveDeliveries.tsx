@@ -116,6 +116,11 @@ const ActiveDeliveries: React.FC<MapMarkersProps> = ({
     if (!selectedDelivery) return;
     // Update in Firebase
 
+    console.log("documentId", documentId);
+    console.log("selectedDelivery.dateKey", selectedDelivery.dateKey);
+    console.log("selectedDelivery.groupId", selectedDelivery.groupId);
+    console.log("selectedDelivery.deliveryId", selectedDelivery.deliveryId);
+    console.log("selectedDelivery.status", selectedDelivery.status);
     await updateDeliveryStatusInFirebase(
       documentId,
       selectedDelivery.dateKey,
@@ -223,6 +228,8 @@ const ActiveDeliveries: React.FC<MapMarkersProps> = ({
                                 ? "success"
                                 : delivery?.status === "return"
                                 ? "warning"
+                                : delivery?.status === "in-route"
+                                ? "secondary"
                                 : "primary"
                             }
                             slot="end"

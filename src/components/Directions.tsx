@@ -10,6 +10,8 @@ interface ContainerProps {
   endRoute: string;
   routeLeg: any;
   setRouteLeg: (leg: any) => void;
+  driverContainerModelOpen: boolean;
+  setDriverContainerModelOpen: (driverContainerModelOpen: boolean) => void;
 }
 
 const Directions: React.FC<ContainerProps> = ({
@@ -19,6 +21,8 @@ const Directions: React.FC<ContainerProps> = ({
   endRoute,
   routeLeg,
   setRouteLeg,
+  driverContainerModelOpen,
+  setDriverContainerModelOpen,
 }) => {
   const map = useMap();
   const routesLibrary = useMapsLibrary("routes");
@@ -99,6 +103,7 @@ const Directions: React.FC<ContainerProps> = ({
                 if (directionsRenderer) {
                   directionsRenderer.setMap(null); // Clear the map
                 }
+                setDriverContainerModelOpen(true);
               }}
               fill="clear"
               slot="start"
