@@ -23,6 +23,7 @@ def capacitor_pods
 end
 
 target 'App' do
+  use_frameworks!
   capacitor_pods
   # Add your Pods here
   pod 'Firebase/Core'
@@ -33,4 +34,10 @@ end
 
 post_install do |installer|
   assertDeploymentTarget(installer)
+  # Optionally, fix for Xcode 12+ and M1 Macs:
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+    end
+  end
 end

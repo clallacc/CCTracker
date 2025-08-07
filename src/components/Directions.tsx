@@ -1,6 +1,6 @@
 import { IonButton, IonIcon, IonItem, IonLabel, IonList } from "@ionic/react";
 import { useMap, useMapsLibrary } from "@vis.gl/react-google-maps";
-import { chevronBack, navigate } from "ionicons/icons";
+import { chevronBack, create, navigate } from "ionicons/icons";
 import { useEffect, useState } from "react";
 
 interface ContainerProps {
@@ -12,6 +12,8 @@ interface ContainerProps {
   setRouteLeg: (leg: any) => void;
   driverContainerModelOpen: boolean;
   setDriverContainerModelOpen: (driverContainerModelOpen: boolean) => void;
+  cancelDelivery: boolean;
+  setCancelDelivery: (cancelDelivery: boolean) => void;
 }
 
 const Directions: React.FC<ContainerProps> = ({
@@ -23,6 +25,8 @@ const Directions: React.FC<ContainerProps> = ({
   setRouteLeg,
   driverContainerModelOpen,
   setDriverContainerModelOpen,
+  cancelDelivery,
+  setCancelDelivery,
 }) => {
   const map = useMap();
   const routesLibrary = useMapsLibrary("routes");
@@ -48,6 +52,8 @@ const Directions: React.FC<ContainerProps> = ({
   useEffect(() => {
     if (!directionsService || !directionsRenderer) return;
 
+    console.log("startRoute", startRoute);
+    console.log("endRoute", endRoute);
     directionsService
       .route({
         origin: startRoute,
@@ -140,11 +146,15 @@ const Directions: React.FC<ContainerProps> = ({
             ))}
           </IonList>
           <div>
-            <button
+            {/* <button
               onClick={() => setTravelMode(google.maps.TravelMode.DRIVING)}
             >
               Switch to Driving Mode
-            </button>
+            </button> */}
+            <IonButton onClick={() => setCancelDelivery(true)} fill="clear">
+              <p>Return Delivery</p>{" "}
+              <IonIcon slot="start" icon={create}></IonIcon>
+            </IonButton>
           </div>
         </div>
       )}

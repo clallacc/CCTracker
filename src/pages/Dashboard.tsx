@@ -7,7 +7,9 @@ import {
   IonFooter,
   IonHeader,
   IonIcon,
+  IonItem,
   IonLabel,
+  IonList,
   IonLoading,
   IonMenuButton,
   IonPage,
@@ -47,7 +49,7 @@ import Directions from "../components/Directions";
 import { useAppContext } from "../services/appContext";
 import { auth } from "../services/firebase";
 import Intro from "../components/Intro";
-import { home, navigate, options, pin, refresh } from "ionicons/icons";
+import { close, home, navigate, options, pin, refresh } from "ionicons/icons";
 import Deliveries from "../components/Deliveries";
 import Options from "../components/Options";
 import TrackDriver from "../components/TrackDriver";
@@ -63,8 +65,8 @@ const Page: React.FC = () => {
   //   null
   // );
   const homePosition = { lat: 10.6577349, lng: -61.5131554 };
-  // const position = { lat: 10.6419388, lng: -61.2808954 };
-  const position = { lat: 10.6401756, lng: -61.3346946 };
+  const position = { lat: 10.6419388, lng: -61.2808954 };
+  // const position = { lat: 10.6401756, lng: -61.3346946 };
   const [driverSection, setDriverSection] = useState<number>(0);
   const { appState, setAppState } = useAppContext();
   const [showIntro, setShowIntro] = useState<boolean>(true);
@@ -85,6 +87,8 @@ const Page: React.FC = () => {
     dateKey: string;
     groupId: string;
   }>({ documentId: "", dateKey: "", groupId: "" });
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState("");
 
   // console.log("loginStatus", auth?.currentUser?.email);
   // const initializeAppAdmin = async () => {
@@ -256,6 +260,78 @@ const Page: React.FC = () => {
   };
   // Load map
 
+  const ShowEndRouteConfirmation = ({
+    setShowOptions,
+    selectedDeliveryMethod,
+    setSelectedDeliveryMethod,
+  }: {
+    setShowOptions: React.Dispatch<React.SetStateAction<boolean>>;
+    selectedDeliveryMethod: string;
+    setSelectedDeliveryMethod: React.Dispatch<React.SetStateAction<string>>;
+  }) => {
+    return (
+      <div
+        className="route-confirm-container"
+        onClick={() => setShowOptions(false)} // Close when clicking outside
+      >
+        <div
+          className="route-confirm-div"
+          onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+        >
+          <IonList>
+            <IonItem>
+              <IonButton
+                onClick={() => setShowOptions(false)}
+                fill="clear"
+                slot="start"
+              >
+                <IonIcon icon={close}></IonIcon>
+              </IonButton>
+              <IonLabel>
+                <h3>Choose Delivery Status</h3>
+              </IonLabel>
+            </IonItem>
+
+            {[
+              { key: "del", label: "Delivered" },
+              { key: "cna", label: "Call No Answer" },
+              { key: "nah", label: "Not At Home" },
+              { key: "naw", label: "Not At Work" },
+              { key: "weh", label: "Wrong Estate/House" },
+              { key: "bin", label: "Bad/Incorrect Number" },
+              { key: "ovc", label: "On Vacation" },
+              { key: "utc", label: "Unavailable to Collect" },
+            ].map(({ key, label }) => (
+              <IonItem
+                key={key}
+                onClick={() => setSelectedDeliveryMethod(key)}
+                style={
+                  selectedDeliveryMethod === key
+                    ? { "--background": "#ebebeb", borderRadius: "12px" }
+                    : undefined
+                }
+                lines={key === "utc" ? "none" : undefined}
+              >
+                {label}
+              </IonItem>
+            ))}
+          </IonList>
+
+          <div className="route-confirm-save">
+            <IonButton
+              slot="end"
+              expand="block"
+              shape="round"
+              onClick={() => endRoute()} // Close on save or add your save logic here
+            >
+              Save
+            </IonButton>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const startRoute = async () => {
     const data = {
       deliveryid: deliveryId,
@@ -264,7 +340,9 @@ const Page: React.FC = () => {
       end: leg.end_address,
       startDateTime: new Date().toISOString(),
       deliveryDateTime: null,
+      coordinates: position,
       status: "in-route",
+      reason: "",
     };
 
     await prefsStoreDelivered(data).then(async () => {
@@ -273,6 +351,7 @@ const Page: React.FC = () => {
         deliveryUpdateProps.dateKey,
         deliveryUpdateProps.groupId,
         deliveryId,
+        "in-route",
         "in-route"
       );
       setRouteStart(true);
@@ -288,21 +367,58 @@ const Page: React.FC = () => {
   };
 
   const endRoute = async () => {
-    // await updateDeliveredInFirebase(deliveryId, position);
-    const delivered = await getDeliveredByDriver();
-    delivered.deliveryDateTime = new Date().toISOString();
-    delivered.status = "delivered";
-    await createDeliveredInFirebase(delivered).then(async () => {
-      await updateDeliveryStatusInFirebase(
-        deliveryUpdateProps.documentId,
-        deliveryUpdateProps.dateKey,
-        deliveryUpdateProps.groupId,
-        deliveryId,
-        "delivered"
-      );
-      alert("Delivery updated");
-    });
-    setRouteStart(false);
+    console.log("selectedDeliveryMethod", selectedDeliveryMethod);
+    if (!selectedDeliveryMethod) {
+      setShowOptions(true);
+      return;
+    }
+    console.log("selectedDeliveryMethod 02", selectedDeliveryMethod);
+    // Update deliveries if delivered
+    if (selectedDeliveryMethod === "del") {
+      const delivered = await getDeliveredByDriver();
+      delivered.deliveryDateTime = new Date().toISOString();
+      delivered.status = "delivered";
+      await createDeliveredInFirebase(delivered).then(async () => {
+        await updateDeliveryStatusInFirebase(
+          deliveryUpdateProps.documentId,
+          deliveryUpdateProps.dateKey,
+          deliveryUpdateProps.groupId,
+          deliveryId,
+          "delivered",
+          selectedDeliveryMethod
+        );
+        alert("Delivery updated");
+      });
+      setRouteStart(false);
+      setShowOptions(false);
+      setSelectedDeliveryMethod("");
+    } else {
+      // Update cancel deliveries
+      const data = {
+        deliveryid: deliveryId,
+        email: auth?.currentUser?.email,
+        start: leg.start_address,
+        end: leg.end_address,
+        startDateTime: new Date().toISOString(),
+        deliveryDateTime: null,
+        coordinates: position,
+        status: "return",
+        reason: selectedDeliveryMethod,
+      };
+
+      await prefsStoreDelivered(data).then(async () => {
+        await updateDeliveryStatusInFirebase(
+          deliveryUpdateProps.documentId,
+          deliveryUpdateProps.dateKey,
+          deliveryUpdateProps.groupId,
+          deliveryId,
+          "return",
+          selectedDeliveryMethod
+        );
+      });
+      setShowOptions(false);
+      setSelectedDeliveryMethod("");
+    }
   };
 
   useEffect(() => {
@@ -351,6 +467,7 @@ const Page: React.FC = () => {
                       isModalOpen={driverContainerModelOpen}
                       setIsModalOpen={setDriverContainerModelOpen}
                       setDeliveryUpdateParams={setDeliveryUpdateProps}
+                      setShowReturnOptions={setShowOptions}
                     />
                   )}
                   {appState.page === "driver-delivered" && (
@@ -423,6 +540,8 @@ const Page: React.FC = () => {
                             setDriverContainerModelOpen={
                               setDriverContainerModelOpen
                             }
+                            cancelDelivery={showOptions}
+                            setCancelDelivery={setShowOptions}
                           />
                         )}
                       </Map>
@@ -486,12 +605,11 @@ const Page: React.FC = () => {
       </IonPage>
       {/* Show backdrop and options only when showOptions is true */}
       {showOptions && (
-        <>
-          <Options
-            setIsOptionsOpen={setShowOptions}
-            isOptionsOpen={showOptions}
-          />
-        </>
+        <ShowEndRouteConfirmation
+          setShowOptions={setShowOptions}
+          selectedDeliveryMethod={selectedDeliveryMethod}
+          setSelectedDeliveryMethod={setSelectedDeliveryMethod}
+        />
       )}
     </>
   );

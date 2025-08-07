@@ -112,3 +112,28 @@ body {
   background: #e1f0ec;
   --background: #e1f0ec;
 }
+
+.route-confirm-container {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  background: #1a1a1a99;
+  z-index: 1000;
+}
+
+.route-confirm-container .route-confirm-div {
+  width: 75%;
+  height: fit-content;
+  margin: 20% auto;
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+}
+.route-confirm-container .route-confirm-save {
+  width: 75%;
+  height: fit-content;
+  margin: 5% auto;
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+}

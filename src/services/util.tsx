@@ -759,6 +759,7 @@ export const getInFirebaseDelivery = async (): Promise<any[]> => {
     const filteredData: any[] = deliveryDocsRef.docs.map((doc) => {
       const data = doc.data();
       // data.docid = doc.id;
+      console.log("delivery doc: ", data);
       return { id: doc.id, data: data };
     });
 
@@ -799,7 +800,8 @@ export const updateDeliveryStatusInFirebase = async (
   dateKey: string,
   groupId: string,
   deliveryId: string,
-  newStatus: string
+  newStatus: string,
+  reason: string
 ) => {
   const docRef = doc(DeliveryCollectionRef, docId);
   const docSnap = await getDoc(docRef);
@@ -836,6 +838,7 @@ export const updateDeliveryStatusInFirebase = async (
 
   // 4. Update the status locally
   deliveries[deliveryIndex].status = newStatus;
+  deliveries[deliveryIndex].reason = newStatus;
 
   // 5. Write back the entire modified group array for this dateKey
   await updateDoc(docRef, {

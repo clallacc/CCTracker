@@ -12,6 +12,7 @@ import {
   getInFirebaseDelivery,
   updateDeliveryStatusInFirebase,
 } from "../services/util";
+import DeliveryStatusAlert from "./AdminDeliveryStatusAlert";
 
 interface MapMarkersProps {
   markerPositions: { id: string; coordinates: L.LatLngExpression }[];
@@ -39,6 +40,7 @@ const ActiveDeliveries: React.FC<MapMarkersProps> = ({
     deliveryId: string;
     status: string;
   } | null>(null);
+  const [deliveryReturnReason, setDeliveryReturnReason] = useState("");
 
   const getFirebaseDeliveries = async () => {
     const firedeliveries = await getInFirebaseDelivery();
@@ -126,7 +128,8 @@ const ActiveDeliveries: React.FC<MapMarkersProps> = ({
       selectedDelivery.dateKey,
       selectedDelivery.groupId,
       selectedDelivery.deliveryId,
-      selectedDelivery.status
+      selectedDelivery.status,
+      deliveryReturnReason
     );
     // Optionally, refresh deliveries from Firebase here
     setShowStatusAlert(false);
@@ -257,7 +260,16 @@ const ActiveDeliveries: React.FC<MapMarkersProps> = ({
         );
       })}
 
-      <IonAlert
+      <DeliveryStatusAlert
+        showStatusAlert={showStatusAlert}
+        handleAlertDismiss={handleAlertDismiss}
+        selectedDelivery={selectedDelivery}
+        handleStatusChange={handleStatusChange}
+        saveStatusChange={saveStatusChange}
+        setOption={setDeliveryReturnReason}
+      />
+
+      {/* <IonAlert
         isOpen={showStatusAlert}
         header="Update Delivery Status"
         inputs={[
@@ -295,7 +307,7 @@ const ActiveDeliveries: React.FC<MapMarkersProps> = ({
           },
         ]}
         onDidDismiss={handleAlertDismiss}
-      />
+      /> */}
     </IonGrid>
   );
 };
